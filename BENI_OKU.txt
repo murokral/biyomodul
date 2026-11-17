@@ -1,0 +1,27 @@
+BİYOMODÜL web sayfası — kurulum
+
+Bu klasör tek başına çalışan bir web sitesidir:
+  index.html        sayfa
+  modeller/         ekranda dönen hafif 3B modeller (.glb) ve etiket noktaları
+  indir/            öğrencilerin indireceği baskı STL'leri (0,05 mm hassasiyetle sadeleştirildi, kapalı katı)
+
+ÖNEMLİ: index.html'e bilgisayarda çift tıklayınca modeller YÜKLENMEZ (tarayıcı güvenliği).
+Sayfa bir web sunucusundan açılmalıdır:
+
+1) Ücretsiz yayın (önerilen) – GitHub Pages
+   - github.com'da hesap aç, "biyomodul" adlı yeni bir depo (repository) oluştur.
+   - "Add file > Upload files" ile bu klasörün İÇİNDEKİLERİ yükle (index.html en üstte olmalı).
+     GitHub tek dosyada 25 MB tarayıcı sınırı koyar; en büyük dosyalar 11 MB, sorun yok.
+   - Settings > Pages > Branch: main, klasör: /(root) > Save.
+   - Birkaç dakika sonra adres: https://KULLANICIADIN.github.io/biyomodul/
+2) Alternatif: Netlify Drop (app.netlify.com/drop) — klasörü sürükle-bırak.
+3) Bilgisayarda deneme: bu klasörde komut satırına  python -m http.server  yaz,
+   tarayıcıda http://localhost:8000 aç.
+
+QR KOD: Site yayınlandıktan sonra "İndir ve bas" sekmesindeki adres kutusuna sitenin adresini yaz;
+QR otomatik güncellenir. Her model için ayrı QR çıkar (#kalp, #goz, #beyin).
+
+LİSANS: Kalp modeli BodyParts3D (CC BY-SA 2.1 JP) verisinden türetilmiştir; sayfanın altında atıf vardır, silmeyin.
+Beyin dış yüzeyi FreeSurfer fsaverage5 verisinden türetilmiştir.
+
+Keşif defteri (hangi yapıların açıldığı) yalnızca öğrencinin kendi tarayıcısında tutulur; sunucuya veri gitmez.
