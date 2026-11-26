@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BİYOMODÜL</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#b23440">
+<link rel="apple-touch-icon" href="ikon/ikon-192.png">
+<meta name="description" content="Kalp, göz ve beyin için 3B baskıya hazır, sökülebilir biyoloji modelleri ve etkileşimli rehber.">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Yerlesim: ustte marka + model sekmeleri; solda 3B sahne (laboratuvar tezgahi), sagda calisma paneli (sekmeli). Telefonda ust uste. */
+:root{
+  --bg:#eef2f1; --panel:#ffffff; --ink:#15211f; --muted:#5b6b67; --line:#d5dfdc; --stage:#dfe7e4; --stage2:#c9d6d2;
+  --accent:#b23440; --accent-ink:#ffffff; --soft:#f6f8f7; --ok:#1f7a4d; --warn:#9a6200; --bad:#b0302b;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1716; --panel:#16201f; --ink:#e6eeec; --muted:#93a5a0; --line:#28403b; --stage:#1a2725; --stage2:#0e1514;
+  --soft:#1c2826; --ok:#4cc38a; --warn:#e3a740; --bad:#ef6b62; color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1716; --panel:#16201f; --ink:#e6eeec; --muted:#93a5a0; --line:#28403b; --stage:#1a2725; --stage2:#0e1514;
+  --soft:#1c2826; --ok:#4cc38a; --warn:#e3a740; --bad:#ef6b62; color-scheme:dark}
+body[data-model="goz"]{--accent:#2c6c9e}
+body[data-model="beyin"]{--accent:#7b4fa0}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);margin:0}
+a{color:var(--accent)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--panel)}
+.hrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:10px;max-width:1400px;margin:0 auto}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand b{font:800 26px/1 var(--f-display);letter-spacing:-.02em}
+.brand b span{color:var(--accent)}
+.brand small{color:var(--muted);font-size:13px}
+nav.models{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+nav.models a{text-decoration:none;color:var(--ink);padding:8px 14px;border-radius:999px;border:1px solid var(--line);font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}
+nav.models a .dot{width:9px;height:9px;border-radius:50%;background:var(--c)}
+nav.models a[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+main{max-width:1400px;margin:0 auto;padding-block:16px 40px;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:16px}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+
+/* sahne */
+.stagebox{position:relative;border-radius:14px;overflow:hidden;background:radial-gradient(120% 90% at 50% 35%,var(--stage),var(--stage2));min-height:420px;height:min(72vh,720px);border:1px solid var(--line)}
+@media (max-width:900px){.stagebox{height:62vh;min-height:360px}}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:absolute;left:12px;top:12px;right:12px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.hud .tag{pointer-events:auto;background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:10px;padding:8px 12px;max-width:62%}
+.hud .tag h1{font:700 20px/1.15 var(--f-display);margin:0;text-wrap:balance}
+.hud .tag p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.scale{font:500 12px var(--f-mono);color:var(--muted);align-self:flex-start;background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:8px;padding:6px 9px;pointer-events:auto}
+#markers{position:absolute;inset:0;pointer-events:none}
+.mk{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;border:2px solid #fff;background:var(--accent);color:#fff;
+  width:24px;height:24px;border-radius:50%;font:600 11px/20px var(--f-mono);text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.35);transition:opacity .2s, transform .15s;padding:0}
+.mk:hover,.mk.on{transform:translate(-50%,-50%) scale(1.22)}
+.mk.hid{opacity:.22}
+.mk.on{background:#111;border-color:var(--accent)}
+.mk.found{background:var(--ok)}
+.mk .lb{position:absolute;left:28px;top:50%;transform:translateY(-50%);white-space:nowrap;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  font:600 12px var(--f-body);padding:2px 8px;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .15s}
+.mk:hover .lb,.mk.on .lb,.showlabels .mk:not(.hid) .lb{opacity:1}
+.quizmode .mk .lb{opacity:0!important}
+.loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-weight:600}
+.tools{position:absolute;left:12px;right:12px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tools .grp{display:flex;align-items:center;gap:8px;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.tools label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.tools input[type=range]{width:110px;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 11px;font-weight:600;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+@media (max-width:520px){.tools{gap:6px}.tools input[type=range]{width:72px}.tools .grp{padding:5px 8px}.btn{padding:6px 9px;font-size:12px}.hud .tag{max-width:70%}.hud .tag h1{font-size:17px}}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* panel */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;min-width:0;height:min(72vh,720px)}
+@media (max-width:900px){.panel{height:auto}}
+.tabs{display:flex;gap:2px;padding:6px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
+@media (max-width:520px){#mscale{display:none}}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tabs.more{-webkit-mask-image:linear-gradient(90deg,#000 84%,transparent);mask-image:linear-gradient(90deg,#000 84%,transparent)}
+.tabs button{border:0;background:transparent;padding:8px 11px;border-radius:8px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--soft);color:var(--ink);box-shadow:inset 0 -2px 0 var(--accent)}
+.pbody{padding:16px;overflow:auto;min-height:0;flex:1}
+.pbody h2{font:700 19px/1.2 var(--f-display);margin:0 0 6px;text-wrap:balance}
+.pbody h3{font:700 15px/1.3 var(--f-display);margin:16px 0 6px}
+.lead{color:var(--muted);margin:0 0 12px;max-width:60ch}
+.list{display:flex;flex-direction:column;gap:4px;margin:8px 0 0;padding:0;list-style:none}
+.list button{width:100%;text-align:left;display:flex;gap:10px;align-items:center;border:1px solid transparent;background:transparent;padding:7px 8px;border-radius:8px;cursor:pointer}
+.list button:hover{background:var(--soft)}
+.list button.on{border-color:var(--accent);background:var(--soft)}
+.num{font:500 11px/20px var(--f-mono);width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;text-align:center;flex:none}
+.seen .num{background:var(--ok)}
+.card{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--soft)}
+.card .k{font:600 11px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.card h2{margin-top:2px}
+.card p{margin:6px 0}
+.card .fact{display:flex;gap:8px;font-size:13px;color:var(--muted)}
+.chip{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid var(--line);background:var(--panel)}
+.prog{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:6px 0 2px}
+.prog i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.steps{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:6px}
+.steps li{display:flex;gap:10px;align-items:flex-start;padding:8px;border-radius:9px;border:1px solid var(--line);font-size:14px}
+.steps li.cur{border-color:var(--accent);background:var(--soft)}
+.steps li.done{opacity:.6}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0}
+.q b{display:block;margin-bottom:4px}
+.q details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+.tw{overflow-x:auto}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{font-size:13px;color:var(--muted)}
+.warnbox{border-left:3px solid var(--warn);padding:8px 12px;background:var(--soft);border-radius:0 8px 8px 0;font-size:13px;margin:10px 0}
+.qrbox{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+#qr{background:#fff;padding:10px;border-radius:10px;border:1px solid var(--line);width:max-content}
+input[type=text],select{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 9px;width:100%}
+.feedback{font-weight:600;min-height:1.5em}
+.feedback.ok{color:var(--ok)}.feedback.bad{color:var(--bad)}
+footer{max-width:1400px;margin:0 auto;padding-block:0 30px;color:var(--muted);font-size:12px}
+
+#labels{position:absolute;inset:0;pointer-events:none}
+.lbl{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;border:0;border-left:4px solid var(--c);background:var(--panel);color:var(--ink);
+  font:600 11.5px var(--f-body);padding:3px 8px;border-radius:5px;box-shadow:0 1px 3px rgba(0,0,0,.25);white-space:nowrap}
+#pin{position:absolute;pointer-events:none;width:0;height:0}
+#pin .ring{position:absolute;left:-15px;top:-15px;width:30px;height:30px;border-radius:50%;border:3px solid var(--c,var(--accent));box-shadow:0 0 0 3px rgba(255,255,255,.85);animation:pulse 1.4s ease-out infinite}
+#pin .pl{position:absolute;left:22px;top:-15px;white-space:nowrap;background:var(--c,var(--accent));color:#fff;font:700 13px var(--f-body);padding:5px 10px;border-radius:7px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+@keyframes pulse{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.5);opacity:.35}}
+.hint{position:absolute;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 12px;border-radius:9px;font-size:13px;max-width:90%;text-align:center}
+.cat{display:flex;align-items:center;gap:8px;font-size:12px!important;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cat::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c)}
+.list .dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 0 2px var(--panel),0 0 0 3px var(--c)}
+.list button.seen .dot{background:var(--ok);box-shadow:0 0 0 2px var(--panel),0 0 0 3px var(--ok)}
+.list button.on{border-color:var(--c)}
+.card{border-left:4px solid var(--c,var(--accent))}
+.card .k{color:var(--c,var(--accent))}
+select.mini{width:auto;padding:4px 6px;font-size:12px}
+.acc{display:flex;gap:6px;flex-wrap:wrap}
+.acc .btn{padding:6px 10px}
+html.big body{font-size:17.5px} html.big .pbody h2{font-size:23px} html.big .pbody h3{font-size:18px} html.big .tabs button,html.big .btn,html.big .note,html.big table,html.big .lbl,html.big #pin .pl{font-size:15.5px}
+html.hc{--muted:var(--ink);--line:var(--ink)} html.hc .btn,html.hc .q,html.hc .card,html.hc .panel,html.hc .stagebox{border-width:2px} html.hc a{text-decoration:underline} html.hc .tabs button[aria-selected="true"]{box-shadow:inset 0 -4px 0 var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header><div class="hrow wrap">
+  <div class="brand"><b>BİYO<span>MODÜL</span></b><small>Oku, dokun, sök, keşfet.</small></div>
+  <nav class="models" aria-label="Modeller">
+    <a href="#kalp" data-m="kalp" style="--c:#b23440"><span class="dot"></span>Kalp</a>
+    <a href="#goz" data-m="goz" style="--c:#2c6c9e"><span class="dot"></span>Göz</a>
+    <a href="#beyin" data-m="beyin" style="--c:#7b4fa0"><span class="dot"></span>Beyin</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <section class="stagebox" id="stage" aria-label="3B model sahnesi">
+    <canvas id="view"></canvas>
+    <div id="labels" hidden></div>
+    <div id="pin" hidden><span class="ring"></span><span class="pl" id="pinName"></span></div>
+    <div id="hint" class="hint" hidden role="status"></div>
+    <div class="loading" id="loading">Model yükleniyor…</div>
+    <div class="hud">
+      <div class="tag"><h1 id="mtitle">Kalp</h1><p id="msub"></p></div>
+      <div class="scale" id="mscale"></div>
+    </div>
+    <div class="tools">
+      <div class="grp"><label for="explode">Parçaları ayır</label><input type="range" id="explode" min="0" max="1" step="0.01" value="0"></div>
+      <div class="grp"><label for="clip">Kesit</label><input type="range" id="clip" min="0" max="1" step="0.01" value="1"></div>
+      <div class="grp"><label for="textColor">Yazılar</label><select id="textColor" class="mini"><option value="oto">Otomatik</option><option value="#111111">Siyah</option><option value="#ffffff">Beyaz</option><option value="#ffd23f">Sarı</option><option value="#1e5fd6">Mavi</option></select></div>
+      <button class="btn" id="bLabels" aria-pressed="false">Tüm adlar</button>
+      <button class="btn" id="bBook" aria-pressed="true">Kitaptaki görünüm</button>
+      <button class="btn" id="bOuter" aria-pressed="false">Dış görünüm</button>
+      <button class="btn" id="bReset">Sıfırla</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Çalışma paneli">
+    <div class="tabs" role="tablist">
+      <button role="tab" data-t="kesfet" aria-selected="true">Keşfet</button>
+      <button role="tab" data-t="tur">Yolculuk</button>
+      <button role="tab" data-t="bul">Bul bakalım</button>
+      <button role="tab" data-t="merak">Merak et</button>
+      <button role="tab" data-t="indir">İndir</button>
+      <button role="tab" data-t="hazirla">Hazırla</button>
+      <button role="tab" data-t="ogretmen">Öğretmen</button>
+    </div>
+    <div class="pbody" id="pbody"></div>
+  </section>
+</main>
+<footer class="wrap" id="foot"></footer>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="lib/GLTFLoader.js"></script>
+<script src="lib/DRACOLoader.js"></script>
+<script src="lib/qrcode.min.js"></script>
+<script>
+/* ======================================================================  ICERIK  */
+const OPENSTAX = {
+  kalp:"https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy",
+  goz:"https://openstax.org/books/anatomy-and-physiology-2e/pages/14-1-sensory-perception",
+  beyin:"https://openstax.org/books/anatomy-and-physiology-2e/pages/13-2-the-central-nervous-system"};
+const M = {
+kalp:{ ad:"Kalp", alt:"İki parça · ekranda gerçek boyut · basılı model %60 · 11. sınıf dolaşım sistemi", olcek:"Ekran 1:1 · baskı %60",
+  kaynak:"Şekil: BodyParts3D, © Database Center for Life Science (DBCLS), CC BY-SA 2.1 JP. Kesit, adlar ve oklar BİYOMODÜL tarafından eklendi.",
+  s:{
+   sag_kulakcik:["Sağ kulakçık","Vücuttan dönen oksijence fakir kanı üst ve alt ana toplardamarlarla alır.","Kan buradan triküspit kapaktan geçerek sağ karıncığa iner."],
+   sol_kulakcik:["Sol kulakçık","Akciğerlerden gelen oksijence zengin kanı akciğer toplardamarlarıyla alır.","Kalbin arka tarafında yer alır; önden bakınca büyük kısmı görünmez."],
+   sag_karincik:["Sağ karıncık","Kanı akciğer atardamarıyla akciğerlere pompalar (küçük dolaşım).","Duvarı sol karıncıktan incedir, çünkü kanı yalnızca akciğerlere gönderir."],
+   sol_karincik:["Sol karıncık","Kanı aort ile bütün vücuda pompalar (büyük dolaşım).","Duvarı kalbin en kalın duvarıdır; modelde kesit yüzünde bu fark görülür."],
+   trikuspit:["Triküspit kapak","Sağ kulakçık ile sağ karıncık arasındaki üç yapraklı kapaktır.","Karıncık kasılınca kapanır ve kanın kulakçığa geri dönmesini önler."],
+   mitral:["Mitral kapak","Sol kulakçık ile sol karıncık arasındaki iki yapraklı kapaktır.","Yaprakları kirişlerle papiller kaslara bağlıdır."],
+   aort_kapagi:["Aort kapağı","Sol karıncık ile aort arasındaki yarım ay kapaktır.","Karıncık gevşerken kanın aorttan geri dönmesini engeller. Modelde bu kapak yaklaşık olarak oluşturuldu."],
+   pulmoner_kapak:["Akciğer atardamarı kapağı","Sağ karıncık ile akciğer atardamarı arasındaki yarım ay kapaktır.","Pulmoner kapak olarak da bilinir."],
+   aort:["Aort","Vücudun en büyük atardamarıdır; oksijence zengin kanı bütün vücuda taşır.","Kalpten yukarı çıkar, yay çizerek aşağı döner; yaydan baş ve kollara giden dallar ayrılır."],
+   akciger_atardamari:["Akciğer atardamarı","Oksijence fakir kanı sağ karıncıktan akciğerlere taşır.","Atardamar olduğu hâlde oksijence fakir kan taşır: atardamar kalpten çıkan damardır."],
+   ust_ana_toplardamar:["Üst ana toplardamar","Baş, boyun ve kollardan gelen kanı sağ kulakçığa getirir.",""],
+   alt_ana_toplardamar:["Alt ana toplardamar","Gövde ve bacaklardan gelen kanı sağ kulakçığa getirir.",""],
+   akciger_toplardamari:["Akciğer toplardamarları","Oksijence zengin kanı akciğerlerden sol kulakçığa getirir.","Toplardamar olduğu hâlde oksijence zengin kan taşır."],
+   koroner:["Koroner damarlar","Kalp kasının kendisini besleyen damarlardır.","Bu damarların tıkanması kalp krizine (miyokart enfarktüsü) yol açar."],
+   bolme:["Karıncıklar arası bölme","Sağ ve sol karıncığı ayıran kas duvarıdır.","Böylece oksijence zengin ve fakir kan karışmaz."],
+   papiller:["Papiller kaslar ve kirişler","Kapak yapraklarını karıncık duvarına bağlar.","Karıncık kasılırken yaprakların kulakçığa doğru ters dönmesini önler."]},
+  tur:{ad:"Kanın yolu", aciklama:"Vücuttan gelen kanın kalpten geçip yeniden vücuda gidişini adım adım izle.",
+   adimlar:[["ust_ana_toplardamar","Kan vücuttan üst ve alt ana toplardamarlarla gelir."],["sag_kulakcik","Oksijence fakir kan sağ kulakçıkta toplanır."],
+    ["trikuspit","Triküspit kapak açılır, kan sağ karıncığa geçer."],["sag_karincik","Sağ karıncık kasılır."],["pulmoner_kapak","Kan akciğer atardamarı kapağından geçer."],
+    ["akciger_atardamari","Akciğer atardamarı kanı akciğerlere götürür. Orada kan oksijen alır, karbondioksit verir."],
+    ["akciger_toplardamari","Oksijence zengin kan akciğer toplardamarlarıyla kalbe döner."],["sol_kulakcik","Kan sol kulakçıkta toplanır."],
+    ["mitral","Mitral kapak açılır, kan sol karıncığa geçer."],["sol_karincik","Sol karıncık güçlü bir kasılmayla kanı pompalar."],
+    ["aort_kapagi","Kan aort kapağından geçer."],["aort","Aort kanı bütün vücuda dağıtır."]]},
+  merak:[["Sol karıncığın duvarı neden sağ karıncıktan kalın? Kanın gittiği mesafeyle ilişkisi ne olabilir?","Modelde iki karıncığın duvar kalınlığını cetvelle ölç ve oranla."],
+   ["Kapaklar olmasaydı kalpte ne olurdu?","“Kalp kapak yetmezliği” nedir, araştır."],
+   ["Kalp kendi kanını nereden alır?","Koroner damarları modelde bul; “bypass ameliyatı” ne işe yarar, öğren."],
+   ["Atardamar her zaman temiz kan mı taşır?","Akciğer atardamarı ile aortu karşılaştır."],
+   ["Balıkta ve kurbağada kalp kaç odacıklı?","Odacık sayısının dolaşımı nasıl etkilediğini düşün."]],
+  ogr:[["5 dk","Modeli kapalı göster; öğrencilerden kanın kalbe nereden girdiğini tahmin etmelerini iste."],["10 dk","Ön yarıyı kaldır. Kesitte dört odacığı, kapakları ve duvar kalınlıklarını birlikte bul."],
+   ["10 dk","“Yolculuk” sekmesiyle kanın yolunu takip et; öğrenciler oklarla takip etsin."],["5 dk","“Bul bakalım” ile kısa yarışma; “Merak et” sorularından birini ödev ver."]] },
+goz:{ ad:"Göz", alt:"Sağ göz · ekranda 5 kat büyük · basılı model ≈ 3 kat (%65) · 11. sınıf duyu organları", olcek:"Ekran 5:1 · baskı ≈ 3:1",
+  kaynak:"Ölçüler göz anatomisi kaynaklarından alındı; model BİYOMODÜL tarafından kodla tasarlandı. Kaslar sadeleştirildi.",
+  s:{
+   kornea:["Saydam tabaka (kornea)","Gözün önündeki saydam, damarsız tabakadır.","Işığı en çok kıran yapıdır. Modelde 5 kat büyütüldü (gerçek çapı ≈ 11,7 mm)."],
+   iris:["İris","Düz kaslardan oluşan, göze rengini veren pigmentli yapıdır.","Kasları kasılıp gevşeyerek göz bebeğini fazla ışıkta daraltır, az ışıkta genişletir."],
+   gozbebegi:["Göz bebeği","İrisin ortasındaki açıklıktır.","Karanlıkta büyür, aydınlıkta küçülür."],
+   mercek:["Göz merceği","Göz bebeğinin arkasındaki, saydam ve protein yapılı merceğidir; ışığı ağ tabakaya odaklar.","Kirpiksi cisme asıcı bağlarla bağlıdır; şekli değişerek yakın ve uzağı net görmeyi sağlar. Modelde iki parça."],
+   kirpiksi_cisim:["Kirpiksi cisim","Asıcı bağlarla merceğe bağlıdır.","Kasılıp gevşeyerek merceğin şeklini değiştirir; göz sıvısını üretir."],
+   sklera:["Sert tabaka (sklera)","Gözün en dıştaki beyaz, koruyucu tabakasıdır.","Göz kasları bu tabakaya tutunur."],
+   damar_tabaka:["Damar tabaka (koroid)","Sert tabakanın altındadır; kan damarları ve pigmentlerce zengindir.","Koyu pigmentler ışığın çoğunu emerek göz içindeki yansımaları önler ve görüntünün net olmasını sağlar. Önde kalınlaşarak irisi oluşturur."],
+   ag_tabaka:["Ağ tabaka (retina)","Gözün en iç tabakasıdır; ışığı algılayan çubuk ve koni hücreleri burada bulunur.","Çubuklar loş ışıkta siyah-beyaz görmeyi sağlar (rodopsin pigmenti, A vitamini gerekir). Kırmızı, yeşil ve mavi ışığı algılayan üç tip koni renkli görmeyi sağlar."],
+   sari_benek:["Sarı benek","Optik eksenin ağ tabakayı kestiği çukur bölgedir; görüntü burada ters olarak oluşur.","Merkezinde koni, kenarlarında çubuk hücreleri yoğundur."],
+   kor_nokta:["Kör nokta","Görme sinirlerinin ağ tabakadan çıktığı noktadır.","Burada fotoreseptör bulunmadığından görüntü oluşmaz."],
+   gorme_siniri:["Görme siniri","Ağ tabakadaki uyarıları beyne iletir.",""],
+   camsi_cisim:["Camsı sıvı","Mercek ile ağ tabaka arasındaki en büyük boşluğu dolduran saydam maddedir.","Göz küresinin iç basıncını ayarlar, merceğin ve göz şeklinin sabit kalmasını sağlar. Modelde iki parça."],
+   ust_duz_kas:["Üst düz kas","Gözü yukarı hareket ettirir.","Gözü dört düz ve iki eğik kas hareket ettirir."],
+   dis_duz_kas:["Dış düz kas","Gözü dışa (şakağa doğru) çevirir.",""],
+   ic_duz_kas:["İç düz kas","Gözü içe (buruna doğru) çevirir.",""],
+   alt_duz_kas:["Alt düz kas","Gözü aşağı hareket ettirir.",""],
+   ag_damarlari:["Ağ tabaka damarları","Ağ tabakanın iç kısmını besler.","Göz muayenesinde doğrudan görülebilen tek damarlardır; kırmızı atardamar, mor toplardamar."]},
+  tur:{ad:"Işığın yolu", aciklama:"Bir cisimden gelen ışığın gözde izlediği yol ve görüntünün beyne ulaşması.",
+   adimlar:[["kornea","Işık önce saydam tabakadan (kornea) geçer ve kırılır."],["gozbebegi","Göz bebeğinden içeri girer; iris ışık miktarını ayarlar."],
+    ["mercek","Mercek ışığı yeniden kırarak odaklar."],["kirpiksi_cisim","Yakına ya da uzağa bakarken kirpiksi cisim merceğin şeklini değiştirir."],
+    ["camsi_cisim","Işık camsı sıvıdan geçer."],["sari_benek","Görüntü ağ tabakaya, en net olarak sarı beneğe düşer."],
+    ["ag_tabaka","Çubuk ve koni hücreleri ışığı sinir uyarısına çevirir."],["gorme_siniri","Uyartı görme siniriyle önce talamusa, sonra beyin kabuğundaki görme merkezine gider; görüntü burada düz, net ve renkli yorumlanır."]]},
+  merak:[["Kör noktanı nasıl bulursun?","Bir kâğıda bir artı ve bir nokta çiz, bir gözünü kapat ve kâğıdı yaklaştırıp uzaklaştır."],
+   ["Göz merceği yaşla neden sertleşir?","“Presbiyopi” ve okuma gözlüğü arasındaki ilişkiyi araştır."],
+   ["Kedilerin gözü karanlıkta neden parlar?","“Tapetum lucidum” adlı tabakayı araştır; insanda neden yok?"],
+   ["Miyopide görüntü nereye düşer?","Modeldeki göz uzunluğunu düşün; göz biraz uzun olsaydı ne olurdu?"],
+   ["Ahtapotun gözünde kör nokta var mı?","Omurgalı ve kafadanbacaklı gözlerini karşılaştır."]],
+  ogr:[["5 dk","Gözü birleşik göster; dış kasları ve görme sinirini bul."],["10 dk","Üst yarıyı ve camsı sıvıyı kaldır; tabakaları kesit yüzündeki adlardan oku."],
+   ["10 dk","“Işığın yolu” turunu yap; korneayı, irisi ve merceği sökerek sırayla incele."],["5 dk","Kör nokta deneyini sınıfta yap (Merak et sekmesi)."]] },
+beyin:{ ad:"Beyin", alt:"İki yarım küre · ekranda gerçek boyut · basılı model %55 · 11. sınıf sinir sistemi", olcek:"Ekran 1:1 · baskı %55",
+  kaynak:"Dış yüzey: FreeSurfer fsaverage5 (Fischl vd., 1999); FreeSurfer Yazılım Lisansı (Part B) koşullarıyla dağıtılan, BİYOMODÜL tarafından değiştirilmiş bir sürümdür (lisans metni: LISANSLAR klasörü). Beyincik, beyin sapı ve iç yapılar BİYOMODÜL tarafından şematik olarak eklendi.",
+  s:{
+   uc_beyin:["Uç beyin","Beyin kabuğunda düşünme, konuşma, yazma, duyuların algılanması, istemli kas hareketleri, zekâ ve hafıza merkezleri bulunur.","Dışta gri madde (nöron gövdeleri), içte ak madde (miyelinli aksonlar) vardır. Sağ yarım küre vücudun sol tarafını, sol yarım küre sağ tarafını yönetir. Yarım küreleri enine ayıran yarığa Rolando yarığı denir."],
+   nasirli_cisim:["Nasırlı cisim","İki yarım küreyi üstten birbirine bağlayan, nöron aksonlarından oluşan yapıdır.","Yarım küreleri alttan bağlayan yapıya beyin üçgeni denir. Modelde nasırlı cismin dış sınırı çizildi."],
+   talamus:["Talamus","Orta beyin, pons ve omurilik soğanından gelen uyarıların beyin kabuğuna ulaşmadan önceki son bağlantı noktasıdır.","Duyu organlarından gelen uyarıları beyin kabuğundaki ilgili merkezlere iletir; yalnızca koku talamusa uğramaz. Ara beyindedir; modelde sökülebilir parçadır."],
+   hipotalamus:["Hipotalamus","Ara beyinde talamusun altındadır; açlık, susuzluk, vücut sıcaklığı, uyanıklık ve kan basıncını düzenler.","Serbest bıraktırıcı hormonlarla hipofizin ön kısmını uyarır; duyguları kontrol eder ve homeostaziyi korur."],
+   hipofiz:["Hipofiz bezi","Vücuttaki endokrin bezlerin çalışmasını kontrol eden bezdir.","Hipotalamusun altında, ona bir sapla bağlıdır. Ders kitabında ara beyin yalnızca talamus ve hipotalamustan oluşur; bu yüzden hipofiz ayrı gösterildi."],
+   orta_beyin:["Orta beyin","Ön beyin ile arka beyin arasında, ponsun üzerinde yer alır ve aralarında köprü gibi iletim sağlar.","Kas tonusunu ve vücut duruşunu düzenler; göz bebeğinin ışıkta küçülüp karanlıkta büyümesi ve ani sesin yönünü bulma refleksleri buradan kontrol edilir."],
+   pons:["Pons (Varolii köprüsü)","Orta beyin ile omurilik soğanı arasındaki kalın sinir demetidir.","Solunum ritmini düzenler, vücudun sağ ve sol kaslarının eş güdümünü sağlar ve beyincik yarım küreleri arasında iletim kurar."],
+   omurilik_sogani:["Omurilik soğanı","Solunum, dolaşım ve sindirim gibi hayati olayları düzenler; yutma, hapşırma ve çiğneme refleksleri buradan kontrol edilir.","Kesitinde gri madde içte, ak madde dıştadır. Beyinden çıkan sinirler burada çapraz yapar."],
+   omurilik:["Omurilik","Beyin ile vücut arasında çift yönlü iletim yapar ve refleksleri kontrol eder.","Omurganın içinde, yaklaşık 45 cm uzunluktadır. Kesitinde gri madde içte (kelebek biçiminde), ak madde dıştadır; 31 çift sinir çıkar."],
+   beyincik:["Beyincik","Hareketleri ve vücut dengesini kontrol eder.","Gözden ve iç kulaktaki yarım daire kanallarından gelen sinyalleri değerlendirir. Uç beyin gibi iki yarım küreden oluşur; dışta gri, içte ak madde vardır."],
+   hayat_agaci:["Hayat ağacı","Beyincikte ak maddenin gri madde içinde oluşturduğu ağaç görünümüdür.","Modelde şematik olarak gösterildi."],
+   damarlar:["Yüzey damarları (temsili)","Beynin yüzeyinde atardamar dalları seyreder.","Modeldeki damarlar yaklaşık olarak yerleştirildi; gerçek dallanmayı birebir göstermez."]},
+  tur:{ad:"Aşağıdan yukarı", aciklama:"Omurilikten uç beyne doğru, bölümlerin görevleriyle birlikte.",
+   adimlar:[["omurilik","Omurilik vücuttan gelen uyarıları beyne taşır."],["omurilik_sogani","Omurilik soğanı hayati olayları denetler."],["pons","Pons solunum ritmini düzenler; orta beyin ile omurilik soğanını bağlar."],
+    ["beyincik","Beyincik denge ve hareket uyumunu sağlar."],["orta_beyin","Orta beyin göz bebeği ve ani ses reflekslerini, kas tonusunu düzenler."],["talamus","Talamus duyuları uç beyne yönlendirir."],
+    ["hipotalamus","Hipotalamus vücudun iç dengesini korur."],["hipofiz","Hipotalamusa sapla bağlı hipofiz bezi diğer endokrin bezleri yönetir."],["nasirli_cisim","Nasırlı cisim iki yarım küreyi bağlar."],["uc_beyin","Uç beyin düşünme ve öğrenmenin merkezidir."]]},
+  merak:[["Beyin kıvrımlı olmasaydı ne olurdu?","Kafatası boyutu ile kıvrım sayısı arasındaki ilişkiyi araştır."],
+   ["Sağ yarım küre vücudun hangi tarafını yönetir?","“Sinir yollarının çaprazlaşması” konusunu araştır."],
+   ["Nasırlı cisim kesilirse ne olur?","“Split-brain” (bölünmüş beyin) deneylerini araştır."],
+   ["Alkol neden dengeyi bozar?","Beyinciğin görevini düşünerek açıkla."],
+   ["Koku neden talamustan geçmez?","Koku duyusunun beyne ulaştığı yolu araştır."]],
+  ogr:[["5 dk","Birleşik modelde uç beyin kıvrımlarını ve beyinciği göster."],["10 dk","Yarım küreleri ayır; orta kesitteki yapıları adlarından bul."],
+   ["10 dk","Talamus ve orta beyin parçalarını çıkar; “Aşağıdan yukarı” turunu yap."],["5 dk","“Bul bakalım” ile pekiştir."]] }
+};
+
+/* MEB 11. sinif Biyoloji ders kitabi (TYMM), 1. Tema: Tepki ile uyum. Model disi kavramlar. */
+const KITAP={
+ goz:{kay:"Ders kitabı s. 52–54 (Göz)",m:[
+  ["Asıcı bağlar","Merceği kirpiksi cisme bağlar."],
+  ["Ön oda ve arka oda","Kornea ile iris arası ön oda, iris ile mercek arası arka odadır; gözün şeklini koruyan sıvıyla doludur."],
+  ["Göze yardımcı yapılar","Kaş, göz kapağı, kirpik, gözyaşı bezi ve göz kasları. Gözyaşındaki lizozim enzimi mikroorganizmaları yok eder."],
+  ["Görme olayı","Kornea → göz bebeği → mercek → camsı sıvı → sarı benek (görüntü ters) → görme siniri → talamus → beyin kabuğundaki görme merkezi."]]},
+ beyin:{kay:"Ders kitabı s. 78–81 (Merkezi sinir sistemi)",m:[
+  ["Beyin zarları (meninges)","Dıştan içe sert zar, örümceksi zar ve ince zar. Beyni ve omuriliği sarar; iltihaplanmasına menenjit denir."],
+  ["Beyin omurilik sıvısı (BOS)","Örümceksi zar ile ince zar arasını doldurur; beyni darbelere karşı korur, beslenmeyi ve iyon dengesini sağlar."],
+  ["Beynin bölümleri","Ön beyin = uç beyin + ara beyin (talamus, hipotalamus). Orta beyin. Arka beyin = beyincik + pons + omurilik soğanı. Beyin sapı = orta beyin + pons + omurilik soğanı."],
+  ["Rolando yarığı","Uç beynin yarım kürelerini enine ayıran derin yarıktır."],
+  ["Gri madde ve ak madde","Uç beyin ve beyincikte gri madde dışta, ak madde içte; omurilik ve omurilik soğanında gri madde içte, ak madde dıştadır."],
+  ["Sinirler","Beyinden 12 çift, omurilikten 31 çift sinir çıkar."]]}};
+function kitapKart(){ const K=KITAP[curKey]; if(!K) return '';
+  return `<details class="card" style="margin-top:14px;--c:var(--accent)"><summary style="cursor:pointer;font-weight:700">Ders kitabında olup modelde gösterilmeyenler</summary>
+  <p class="note">${esc(K.kay)}. Bu kavramlar modelde parça olarak yok; derste modelle birlikte anlatılabilir.</p>
+  <dl style="margin:6px 0 0">${K.m.map(([a,b])=>`<dt style="font-weight:700;margin-top:8px">${esc(a)}</dt><dd style="margin:2px 0 0">${esc(b)}</dd>`).join('')}</dl></details>`; }
+/* eski baski tablosu (v3); v4'te PARCA tablosu kullanilir */
+const BASKI = {
+ kalp:[["Arka yarı","kalp/kalp_ARKA_yari.stl","133 × 193 × 88",189,"8–16","Ağaç destek (arka kavis)"],["Ön yarı","kalp/kalp_ON_yari.stl","118 × 177 × 47",118,"5–10","Ağaç destek (dış yüzey)"]],
+ goz:[["Alt yarı","goz/goz_ALT_yari.stl","123 × 144 × 78",120,"5–10","Ağaç destek"],["Üst yarı","goz/goz_UST_yari.stl","121 × 142 × 50",76,"3–6","Ağaç destek"],
+      ["Kornea","goz/kornea.stl","58 × 58 × 13",9,"0,5–1","Gerekmez"],["İris ve kirpiksi cisim","goz/iris_kirpiksi_cisim.stl","91 × 91 × 18",28,"1–2,5","Gerekmez"],
+      ["Mercek ön","goz/mercek_on.stl","48 × 48 × 7",6,"0,5","Gerekmez"],["Mercek arka","goz/mercek_arka.stl","48 × 48 × 13",8,"0,5","Gerekmez"],
+      ["Camsı sıvı alt","goz/camsi_cisim_alt.stl","95 × 72 × 59",76,"3–6,5","Gerekmez"],["Camsı sıvı üst","goz/camsi_cisim_ust.stl","92 × 71 × 35",42,"2–3,5","Gerekmez"]],
+ beyin:[["Sağ yarım küre","beyin/beyin_SAG_yarim_kure.stl","179 × 174 × 65",210,"8–17,5","Ağaç destek"],["Sol yarım küre","beyin/beyin_SOL_yarim_kure.stl","178 × 174 × 64",209,"8–17,5","Ağaç destek"],
+      ["Talamus (sağ)","beyin/tapa_talamus_SAG.stl","15 × 24 × 8",1.4,"0,1","Gerekmez"],["Talamus (sol)","beyin/tapa_talamus_SOL.stl","15 × 24 × 8",1.4,"0,1","Gerekmez"],
+      ["Orta beyin (sağ)","beyin/tapa_orta_beyin_SAG.stl","13 × 17 × 8",0.9,"0,1","Gerekmez"],["Orta beyin (sol)","beyin/tapa_orta_beyin_SOL.stl","13 × 17 × 8",0.9,"0,1","Gerekmez"],
+      ["Pimler (4 adet)","beyin/beyin_pim_4mm_x4.stl","—",1,"0,1","Gerekmez"]]};
+const BIRLESTIR = {kalp:"6 adet 6×3 mm neodimyum mıknatıs ve 2 pim.",goz:"4 adet 6×3 mm mıknatıs ve 2 pim. Mercek yarıları yapıştırılır. Kornea ve mercek için şeffaf PLA/PETG önerilir.",beyin:"8 adet 6×3 mm mıknatıs ve 3 pim (ayrı basılır)."};
+
+/* ======================================================================  3B SAHNE  */
+/* Performans: sahne yalnizca bir sey degisince cizilir (kamera, kaydirici, secim). Surekli dongu ve kare basi isin izleme yok. */
+const CAT = { /* yapi -> renk grubu (etiket rengi) */
+ kalp:{sag_kulakcik:"fakir",sag_karincik:"fakir",akciger_atardamari:"fakir",ust_ana_toplardamar:"fakir",alt_ana_toplardamar:"fakir",
+       sol_kulakcik:"zengin",sol_karincik:"zengin",aort:"zengin",akciger_toplardamari:"zengin",
+       trikuspit:"kapak",mitral:"kapak",aort_kapagi:"kapak",pulmoner_kapak:"kapak",koroner:"diger",bolme:"diger",papiller:"diger"},
+ goz:{kornea:"on",iris:"on",gozbebegi:"on",mercek:"on",kirpiksi_cisim:"on",sklera:"tabaka",damar_tabaka:"tabaka",ag_tabaka:"tabaka",sari_benek:"ag",kor_nokta:"ag",ag_damarlari:"ag",
+      gorme_siniri:"sinir",camsi_cisim:"on",ust_duz_kas:"kas",dis_duz_kas:"kas",ic_duz_kas:"kas",alt_duz_kas:"kas"},
+ beyin:{uc_beyin:"on",nasirli_cisim:"on",talamus:"ara",hipotalamus:"ara",hipofiz:"bez",orta_beyin:"orta",pons:"arka",omurilik_sogani:"arka",beyincik:"arka",hayat_agaci:"arka",omurilik:"omur",damarlar:"diger"}};
+const CATC = {
+ kalp:{fakir:["#2f62c4","Oksijence fakir kan"],zengin:["#c62f37","Oksijence zengin kan"],kapak:["#b7861a","Kapakçıklar"],diger:["#5b6b67","Kas ve damar yapıları"]},
+ goz:{on:["#2c6c9e","Işığı geçiren ve kıran yapılar"],tabaka:["#7a5a3a","Göz tabakaları"],ag:["#c0392b","Ağ tabaka"],sinir:["#b7861a","Sinir"],kas:["#a9483d","Göz kasları"]},
+ beyin:{on:["#7b4fa0","Ön beyin: uç beyin"],ara:["#c0577f","Ara beyin"],bez:["#8a6d3b","Bez (hipotalamusa bağlı)"],orta:["#2f62c4","Orta beyin"],arka:["#1f7a4d","Arka beyin"],omur:["#b7861a","Omurilik"],diger:["#5b6b67","Diğer"]}};
+const INSIDE = {kalp:["trikuspit","mitral","aort_kapagi","pulmoner_kapak","papiller","bolme"],
+  goz:["sari_benek","kor_nokta","ag_tabaka","damar_tabaka","camsi_cisim","ag_damarlari","kirpiksi_cisim","mercek"],
+  beyin:["nasirli_cisim","talamus","hipotalamus","hipofiz","orta_beyin","pons","omurilik_sogani","hayat_agaci"]};
+
+const canvas=document.getElementById('view'), stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:window.devicePixelRatio<2,alpha:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.5)); renderer.localClippingEnabled=true; renderer.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(35,1,1,5000);
+const controls=new THREE.OrbitControls(camera,canvas); controls.enableDamping=false; controls.rotateSpeed=0.8;
+scene.add(new THREE.HemisphereLight(0xffffff,0x6f7a77,0.85));
+const keyL=new THREE.DirectionalLight(0xffffff,0.85); keyL.position.set(-1,1.2,1.4); scene.add(keyL);
+const rimL=new THREE.DirectionalLight(0xffffff,0.35); rimL.position.set(1,-.4,-1); scene.add(rimL);
+const clipPlane=new THREE.Plane(new THREE.Vector3(0,0,-1),1e5);
+const loader=new THREE.GLTFLoader(); const cache={};
+const draco=new THREE.DRACOLoader(); draco.setDecoderPath('lib/draco/'); loader.setDRACOLoader(draco);
+/* ?olcum : cihaz testi modu (yukleme suresi ve dondururken kare hizi) */
+const OLCUM=/[?&]olcum/.test(location.search); const OLC={yukleme_ms:{},fps:[]}; window.__olcum=OLC; let olcFr=0,olcT=performance.now(),olcAktif=0;
+function olcGoster(){ if(!OLCUM) return; let b=document.getElementById('olcKutu');
+  if(!b){ b=document.createElement('div'); b.id='olcKutu'; b.style.cssText='position:fixed;left:8px;bottom:8px;z-index:99;background:#15211f;color:#fff;font:12px/1.4 monospace;padding:8px 10px;border-radius:8px;max-width:92vw;white-space:pre-wrap';
+    b.onclick=()=>{ try{navigator.clipboard.writeText(b.textContent);}catch(e){} }; document.body.appendChild(b); }
+  const f=OLC.fps.slice().sort((a,c)=>a-c), med=f.length?f[Math.floor(f.length/2)]:'-';
+  b.textContent=`ÖLÇÜM MODU (kopyalamak için dokun)\nYükleme (ms): ${Object.entries(OLC.yukleme_ms).map(([k,v])=>k+' '+v).join(' | ')||'-'}\nDöndürürken kare hızı: medyan ${med} fps, en düşük ${f.length?f[0]:'-'} fps (${f.length} örnek)\nEkran: ${innerWidth}×${innerHeight} @${devicePixelRatio}x`; }
+let cur=null, curKey=null, groups={}, pts={}, textMats=[], raycaster=new THREE.Raycaster();
+let needs=true; function req(){ needs=true; }
+controls.addEventListener('change',req);
+
+const SET={
+ kalp:{explode:{on:[-0.204,0.225,0.953,90],arka:[0.204,-0.225,-0.953,15]},clipAxis:[-0.204,0.225,0.953],clipRange:[-60,60],
+   book:{dir:[-0.204,0.225,0.953],hide:["on"]},planeO:[-12.72,-11,9.68],planeN:[0.204,-0.225,-0.953],home:[-0.25,0.15,1]},
+ goz:{explode:{ust:[0,1,0,75],camsi:[0,1,0,35],kornea:[0,0,1,85],iris:[0,0,1,58],mercek:[0,0,1,32]},clipAxis:[0,1,0],clipRange:[-62,62],
+   book:{dir:[0,1,0.55],hide:["ust","camsi"]},home:[-0.55,0.35,0.8]},
+ beyin:{explode:{sag:[-1,0,0,55],sag_talamus:[-1,0,0,55],sag_ortabeyin:[-1,0,0,55],sol:[1,0,0,55],sol_talamus:[1,0,0,55],sol_ortabeyin:[1,0,0,55]},clipAxis:[1,0,0],clipRange:[-80,80],
+   book:{dir:[1,0,0],hide:["sol","sol_talamus","sol_ortabeyin"]},home:[-1,0.25,0.25]}};
+const GROUP_OF={goz:{kornea:"kornea",iris:"iris",gozbebegi:"iris",mercek:"mercek",kirpiksi_cisim:"iris",camsi_cisim:"camsi",ust_duz_kas:"ust"},
+ beyin:{talamus:"sag_talamus",orta_beyin:"sag_ortabeyin"}};
+
+function resize(){const r=stage.getBoundingClientRect(); renderer.setSize(r.width,r.height,false); camera.aspect=r.width/r.height; camera.updateProjectionMatrix(); req();}
+new ResizeObserver(resize).observe(stage);
+
+let NOKTALAR=null;
+async function loadPoints(){ if(NOKTALAR) return NOKTALAR; try{NOKTALAR=await (await fetch('modeller/noktalar.json')).json();}catch(e){NOKTALAR={kalp:{},goz:{},beyin:{}}} return NOKTALAR;}
+const MODEL_URL=k=>`modeller/${k}.glb`;
+function loadModel(k){
+  return new Promise((res,rej)=>{ if(cache[k]) return res(cache[k]);
+    loader.load(MODEL_URL(k), g=>{ g.scene.traverse(o=>{ if(!o.isMesh) return;
+        if(!o.geometry.attributes.normal) o.geometry.computeVertexNormals();
+        const isText=/yazi/.test(o.name||(o.parent&&o.parent.name)||'');
+        const a=o.geometry.attributes.color; let col=new THREE.Color(0xcccccc);
+        if(a){ const sc=(a.array instanceof Uint8Array)?1/255:(a.array instanceof Uint16Array)?1/65535:1; col.setRGB(a.getX(0)*sc,a.getY(0)*sc,a.getZ(0)*sc); o.geometry.deleteAttribute('color'); }
+        col.convertSRGBToLinear();
+        let m;
+        if(isText){ m=new THREE.MeshBasicMaterial({color:0x111111,side:THREE.DoubleSide,clippingPlanes:[clipPlane],polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}); m.userData.text=true; }
+        else { m=new THREE.MeshLambertMaterial({color:col,side:THREE.DoubleSide,clippingPlanes:[clipPlane]});
+          const nm=o.name||''; if(/kas|atardamar|toplardamar|sinir/.test(nm)){m.polygonOffset=true;m.polygonOffsetFactor=-1;m.polygonOffsetUnits=-6;}
+          if(/kornea|mercek|camsi/.test(nm)){m.transparent=true;m.opacity=/camsi/.test(nm)?.3:.55;m.depthWrite=!/camsi/.test(nm);} }
+        o.material=m; o.matrixAutoUpdate=true; });
+      if(k==='beyin'){ try{ hipofizSapi(g.scene); }catch(e){} }
+      cache[k]=g.scene; res(g.scene); }, undefined, rej); });
+}
+
+/* Hipofiz sapi: hipotalamus halkasinin altindan hipofiz halkasinin ustune iki kontur cizgisi (yazi malzemesiyle) */
+function hipofizSapi(root){ const add=(half,x0)=>{ let par=null, mat=null; root.traverse(o=>{ if(o.isMesh&&o.name===half+'|yazi'){ par=o.parent; mat=o.material; } }); if(!par||!mat) return;
+    [[[-2.9,15.2],[-16.3,17.6]],[[-3.3,18.6],[-16.3,21.4]]].forEach(([a,b],i)=>{ const dy=b[0]-a[0], dz=b[1]-a[1], L=Math.hypot(dy,dz);
+      const g=new THREE.BoxGeometry(0.7,L,0.8); const m=new THREE.Mesh(g,mat); m.name=half+'|yazi_hipofiz_sapi_'+i;
+      m.position.set(x0,(a[0]+b[0])/2,(a[1]+b[1])/2); m.rotation.x=Math.atan2(dz,dy); par.add(m); }); };
+  add('sag',0.55); add('sol',0.45); }
+function grpName(o){let n=o.name||''; if(!n.includes('|')&&o.parent) n=o.parent.name||''; return n.split('|')[0];}
+
+async function show(k){
+  curKey=k; document.body.dataset.model=k; loadingEl.hidden=false; loadingEl.textContent='Model yükleniyor…'; const olcT0=performance.now();
+  document.querySelectorAll('nav.models a').forEach(a=>a.setAttribute('aria-current',a.dataset.m===k?'page':'false'));
+  const d=M[k]; mtitle.textContent=d.ad; msub.textContent=d.alt; mscale.textContent=d.olcek; foot.textContent=d.kaynak;
+  if(cur) scene.remove(cur);
+  let obj; try{ obj=await loadModel(k);}catch(e){loadingEl.textContent='Model yüklenemedi. Sayfa bir web sunucusundan açılmalı (BENI_OKU dosyasına bakın).';return;}
+  if(curKey!==k) return;
+  cur=obj; scene.add(cur); groups={}; textMats=[];
+  cur.traverse(o=>{ if(o.isMesh){ const g=grpName(o); (groups[g]=groups[g]||[]).push(o); o.userData.base=o.userData.base||o.position.clone(); o.visible=true; if(o.material.userData.text) textMats.push(o.material);} });
+  setTextColor(textColorEl.value);
+  const P=await loadPoints(); pts={}; const st=SET[k];
+  for(const [id,p] of Object.entries(P[k]||{})){ if(!d.s[id]) continue;
+    let g=(GROUP_OF[k]||{})[id];
+    if(!g){ if(k==='kalp'){ const v=new THREE.Vector3(...p).sub(new THREE.Vector3(...st.planeO)); g=v.dot(new THREE.Vector3(...st.planeN))>0?'arka':'on'; }
+            else if(k==='goz') g='alt'; else g=p[0]>2?'sol':'sag'; }
+    pts[id]={p:new THREE.Vector3(...p),g}; const bp=(BOOKPT[k]||{})[id]; if(bp) pts[id].pb=new THREE.Vector3(...bp);
+    if(k==='kalp'&&g==='on'){ const n=new THREE.Vector3(...st.planeN).normalize(), q=new THREE.Vector3(...p); q.addScaledVector(n,-q.clone().sub(new THREE.Vector3(...st.planeO)).dot(n)-0.5*0+0).addScaledVector(n,1.5); pts[id].pb=q; } }
+  buildLabels(); selected=null; pin.hidden=true; explodeEl.value=0; clipEl.value=1; applyExplode(); applyClip(); bookView(true); loadingEl.hidden=true;
+  if(OLC.yukleme_ms[k]===undefined) OLC.yukleme_ms[k]=Math.round(performance.now()-olcT0); olcGoster();
+  setTab(curTab);
+}
+function offsetOf(g,t){ const e=SET[curKey].explode[g]; if(!e) return new THREE.Vector3(); return new THREE.Vector3(e[0],e[1],e[2]).normalize().multiplyScalar(e[3]*t); }
+function applyExplode(){ const t=+explodeEl.value; for(const [g,arr] of Object.entries(groups)){ const off=offsetOf(g,t); arr.forEach(o=>o.position.copy(o.userData.base).add(off)); } req(); }
+function applyClip(){ const st=SET[curKey]; const a=new THREE.Vector3(...st.clipAxis).normalize(); const t=+clipEl.value; const [lo,hi]=st.clipRange;
+  clipPlane.normal.copy(a).negate(); clipPlane.constant= t>=0.999 ? 1e5 : lo+(hi-lo)*t; req(); }
+function fitDist(){ const b=new THREE.Box3().setFromObject(cur); return b.getSize(new THREE.Vector3()).length()*1.2*Math.max(1,1.15/camera.aspect); }
+function showAll(){ Object.values(groups).flat().forEach(o=>o.visible=true); }
+function hideGroups(list){ Object.entries(groups).forEach(([g,arr])=>arr.forEach(o=>o.visible=!list.includes(g))); }
+
+/* yumusak kamera gecisi (yalnizca gecis boyunca cizim) */
+let anim=null;
+function flyTo(target,pos,ms=650){ const t0=performance.now(), fT=controls.target.clone(), fP=camera.position.clone();
+  anim={t0,ms,fT,fP,tT:target.clone(),tP:pos.clone()}; req(); }
+function setCam(dir,dist,instant){ const d=new THREE.Vector3(...dir).normalize(); camera.near=dist/100; camera.far=dist*20; camera.updateProjectionMatrix();
+  const P=d.multiplyScalar(dist); if(instant){ camera.position.copy(P); controls.target.set(0,0,0); controls.update(); req(); } else flyTo(new THREE.Vector3(),P); }
+/* Baslangic gorunumu kitaptaki kesit gorunumudur (bookMode). "Dis gorunum" butun modeli gosterir. */
+let bookMode=true;
+function viewBtns(){ try{ bBook.setAttribute('aria-pressed',bookMode); bOuter.setAttribute('aria-pressed',!bookMode); }catch(e){} }
+function resetView(instant=true){ bookMode=false; showAll(); setCam(SET[curKey].home,fitDist(),instant); viewBtns(); req(); }
+function bookView(instant=false){ bookMode=true; hideGroups(SET[curKey].book.hide); explodeEl.value=0; applyExplode(); setCam(SET[curKey].book.dir,fitDist()*0.85,instant===true); viewBtns(); req(); }
+
+/* ---------------- secim isareti (tek, belirgin) ve istege bagli ad etiketleri */
+const pin=document.getElementById('pin'), pinName=document.getElementById('pinName'), lblLayer=document.getElementById('labels'); let lblEls={}, selected=null;
+function catColor(id){ const c=(CAT[curKey]||{})[id]; return c?CATC[curKey][c][0]:'var(--accent)'; }
+function buildLabels(){ lblLayer.innerHTML=''; lblEls={};
+  Object.keys(pts).forEach(id=>{ const b=document.createElement('button'); b.type='button'; b.className='lbl'; b.textContent=M[curKey].s[id][0]; b.style.setProperty('--c',catColor(id));
+    b.addEventListener('click',e=>{e.stopPropagation(); onPick(id);}); lblLayer.appendChild(b); lblEls[id]=b; }); }
+const tmp=new THREE.Vector3();
+function ptOf(o){ return (bookMode&&o.pb)?o.pb:o.p; }
+function ptGroup(o){ return (bookMode&&o.pb&&curKey==='kalp')?'arka':o.g; }
+function project(id){ const o=pts[id], gg=ptGroup(o); const w=ptOf(o).clone().add(offsetOf(gg,+explodeEl.value)); tmp.copy(w).project(camera);
+  const r=stage.getBoundingClientRect(); const vis=(groups[gg]||[]).some(m=>m.visible) && tmp.z<1 && !(clipEl.value<0.999 && clipPlane.distanceToPoint(w)<0);
+  return {x:(tmp.x+1)/2*r.width, y:(1-tmp.y)/2*r.height, vis}; }
+function updateOverlay(){
+  if(selected&&pts[selected]){ const q=project(selected); pin.hidden=!q.vis; pin.style.left=q.x+'px'; pin.style.top=q.y+'px'; }
+  if(showLabels){ for(const [id,el] of Object.entries(lblEls)){ const q=project(id); el.style.display=q.vis?'':'none'; el.style.left=q.x+'px'; el.style.top=q.y+'px'; } } }
+
+function loop(now){ requestAnimationFrame(loop);
+  if(anim){ let t=Math.min(1,(now-anim.t0)/anim.ms); t=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    controls.target.lerpVectors(anim.fT,anim.tT,t); camera.position.lerpVectors(anim.fP,anim.tP,t); controls.update(); if(t>=1) anim=null; needs=true; }
+  if(OLCUM){ if(controls._olcDrag) needs=true; else olcAktif=0;
+    if(now-olcT>=1000){ if(olcAktif && olcFr>1){ OLC.fps.push(Math.round(olcFr*1000/(now-olcT))); olcGoster(); } olcFr=0; olcAktif=controls._olcDrag?1:0; olcT=now; } }
+  if(!needs) return; needs=false; renderer.render(scene,camera); updateOverlay(); if(OLCUM) olcFr++; }
+if(OLCUM){ controls.addEventListener('start',()=>controls._olcDrag=true); controls.addEventListener('end',()=>controls._olcDrag=false); }
+requestAnimationFrame(loop);
+
+/* ---------------- modele dokunarak yapi bulma (yalnizca dokununca isin izleme) */
+let downAt=null;
+canvas.addEventListener('pointerdown',e=>{downAt=[e.clientX,e.clientY];});
+canvas.addEventListener('pointerup',e=>{ if(!downAt||!cur) return; const moved=Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1]); downAt=null; if(moved>6) return;
+  const r=canvas.getBoundingClientRect(); const v=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  raycaster.setFromCamera(v,camera); const meshes=Object.values(groups).flat().filter(o=>o.visible&&!o.material.userData.text);
+  const h=raycaster.intersectObjects(meshes,false).find(x=>clipEl.value>=0.999||clipPlane.distanceToPoint(x.point)>=0); if(!h) return;
+  let best=null,bd=1e9; for(const [id,o] of Object.entries(pts)){ const gg=ptGroup(o); if(!(groups[gg]||[]).some(m=>m.visible)) continue; const w=ptOf(o).clone().add(offsetOf(gg,+explodeEl.value)); const d=w.distanceTo(h.point); if(d<bd){bd=d;best=id;} }
+  const lim=curKey==='goz'?30:24; if(best&&bd<lim) onPick(best); else tip('Burada adı verilen bir yapı yok. Biraz daha yakına dokun ya da listeden seç.'); });
+let tipT=null; function tip(t){ hint.textContent=t; hint.hidden=false; clearTimeout(tipT); tipT=setTimeout(()=>hint.hidden=true,2600); }
+
+/* ---------------- yapiya git: gerekiyorsa modeli acar, kamerayi ceker */
+const BOOKPT={beyin:{uc_beyin:[0.5,52,4],beyincik:[0.5,-30,-50]}};
+const OUTER_ONLY={beyin:["damarlar"]};
+function focusOn(id){ const o=pts[id]; if(!o) return; selected=id; pinName.textContent=M[curKey].s[id][0]; pin.style.setProperty('--c',catColor(id)); pin.hidden=false;
+  const st=SET[curKey], inside=(INSIDE[curKey]||[]).includes(id);
+  const inBook=(!st.book.hide.includes(o.g) || !!o.pb) && !(OUTER_ONLY[curKey]||[]).includes(id);
+  let dir;
+  if(inside || (bookMode && inBook)){ bookMode=true;
+    const hide=st.book.hide.filter(g=>!(curKey==='goz'&&id==='camsi_cisim'&&g==='camsi')); hideGroups(hide); explodeEl.value=0; applyExplode();
+    dir=new THREE.Vector3(...(curKey==='goz'&&['sari_benek','kor_nokta','ag_damarlari','ag_tabaka','damar_tabaka'].includes(id)?[0,0.75,0.65]:st.book.dir)).normalize(); }
+  else { bookMode=false; showAll(); if(+explodeEl.value>0 && curKey!=='beyin'){explodeEl.value=0; applyExplode();} dir=o.p.clone().normalize(); if(dir.lengthSq()<0.1) dir=camera.position.clone().normalize(); dir.lerp(camera.position.clone().normalize(),0.35).normalize(); }
+  viewBtns();
+  const w=ptOf(o).clone().add(offsetOf(ptGroup(o),+explodeEl.value)); const dist=fitDist()*(bookMode?0.62:0.8); const target=w.clone().multiplyScalar(bookMode?0.75:0.6);
+  flyTo(target, target.clone().add(dir.multiplyScalar(dist))); }
+
+/* ---------------- kesif defteri (yalnizca bu cihazda) */
+function seenGet(){ try{return JSON.parse(localStorage.getItem('bm_seen')||'{}')}catch(e){return {}} }
+function seenAdd(id){ const s=seenGet(); s[curKey]=s[curKey]||{}; s[curKey][id]=1; try{localStorage.setItem('bm_seen',JSON.stringify(s))}catch(e){} markSeen(); }
+function markSeen(){ const s=(seenGet()[curKey])||{}; document.querySelectorAll('[data-sid]').forEach(b=>b.classList.toggle('seen',!!s[b.dataset.sid]));
+  const p=document.getElementById('progI'); if(p){ const n=Object.keys(s).filter(k=>pts[k]).length, N=Object.keys(pts).length; p.style.width=(100*n/N)+'%'; progT.textContent=`${n} / ${N} yapı keşfedildi`; } }
+
+/* ======================================================================  PANEL  */
+const pbody=document.getElementById('pbody'); let curTab='kesfet', tourI=0, quiz=null, showLabels=false;
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{setTab(b.dataset.t); b.scrollIntoView({block:'nearest',inline:'nearest'});}));
+(()=>{const t=document.querySelector('.tabs'); const f=()=>t.classList.toggle('more',t.scrollLeft+t.clientWidth<t.scrollWidth-4); t.addEventListener('scroll',f,{passive:true}); new ResizeObserver(f).observe(t); f();})();
+function setTab(t){ curTab=t; document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===t));
+  if(t!=='bul') quiz=null; if(t==='bul'&&showLabels) toggleLabels(false); if(t!=='tur'&&window.flowStop) flowStop(); if(window.speechSynthesis) speechSynthesis.cancel(); ({kesfet,tur,bul,merak,indir,ogretmen,hazirla})[t](); }
+function onPick(id){ seenAdd(id); if(curTab==='bul') return quizAnswer(id); if(curTab!=='kesfet') setTab('kesfet'); info(id); }
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);}
+function ids(){ return Object.keys(pts); }
+
+function kesfet(){ const d=M[curKey]; const cats=CATC[curKey];
+  const groupsHtml=Object.entries(cats).map(([c,[col,ad]])=>{ const items=ids().filter(id=>(CAT[curKey]||{})[id]===c); if(!items.length) return '';
+    return `<h3 style="--c:${col}" class="cat">${ad}</h3><ul class="list">${items.map(id=>`<li><button data-sid="${id}" data-id="${id}" style="--c:${col}"><span class="dot"></span>${esc(d.s[id][0])}</button></li>`).join('')}</ul>`; }).join('');
+  pbody.innerHTML=`<h2>${d.ad}: yapıları keşfet</h2><p class="lead">Listeden bir yapı seç ya da modelde bir yere dokun. Seçtiğin yapı işaretlenir, kamera oraya gider; içteki yapılar için model kendiliğinden açılır.</p>
+  <div class="prog"><i id="progI"></i></div><div class="note" id="progT"></div>
+  <div id="infoBox" style="margin-top:12px"></div>${groupsHtml}${kitapKart()}`;
+  pbody.querySelectorAll('[data-id]').forEach(b=>b.addEventListener('click',()=>onPick(b.dataset.id)));
+  markSeen(); if(selected&&pts[selected]) info(selected,true); }
+function info(id,silent){ const s=M[curKey].s[id]; const box=document.getElementById('infoBox'); if(!box) return;
+  const c=(CAT[curKey]||{})[id]; const cc=c?CATC[curKey][c]:null;
+  box.innerHTML=`<div class="card" style="--c:${cc?cc[0]:'var(--accent)'}">${cc?`<div class="k">${cc[1]}</div>`:''}<h2>${esc(s[0])}</h2><p>${esc(s[1])}</p>${s[2]?`<p class="note">${esc(s[2])}</p>`:''}${typeof ekInfo==='function'?ekInfo(id):''}</div>`;
+  pbody.querySelectorAll('[data-id]').forEach(b=>b.classList.toggle('on',b.dataset.id===id)); if(!silent) focusOn(id); box.scrollIntoView({block:'nearest'}); }
+
+function tur(){ const T=M[curKey].tur; tourI=Math.min(tourI,T.adimlar.length-1);
+  pbody.innerHTML=`<h2>${T.ad}</h2><p class="lead">${T.aciklama}</p>
+   <div class="row"><button class="btn" id="tPrev">Geri</button><button class="btn pri" id="tNext">İleri</button><button class="btn" id="tPlay">Otomatik oynat</button><span class="note" id="tCount"></span></div>
+   <ol class="steps" id="tSteps">${T.adimlar.map(([id,t],i)=>`<li data-i="${i}"><span class="num">${i+1}</span><div><b>${esc(M[curKey].s[id][0])}</b><br>${esc(t)}</div></li>`).join('')}</ol>`;
+  const go=i=>{ tourI=Math.max(0,Math.min(T.adimlar.length-1,i)); const id=T.adimlar[tourI][0]; focusOn(id); seenAdd(id);
+    pbody.querySelectorAll('#tSteps li').forEach(li=>{const j=+li.dataset.i; li.className=j===tourI?'cur':(j<tourI?'done':'');});
+    tCount.textContent=`${tourI+1} / ${T.adimlar.length}`; const li=pbody.querySelector(`#tSteps li[data-i="${tourI}"]`); li&&li.scrollIntoView({block:'nearest'}); };
+  let timer=null; tPrev.onclick=()=>go(tourI-1); tNext.onclick=()=>go(tourI+1);
+  tPlay.onclick=()=>{ if(timer){clearInterval(timer);timer=null;tPlay.textContent='Otomatik oynat';return;} tPlay.textContent='Durdur'; go(0);
+    timer=setInterval(()=>{ if(tourI>=T.adimlar.length-1||curTab!=='tur'){clearInterval(timer);timer=null;if(curTab==='tur')tPlay.textContent='Otomatik oynat';return;} go(tourI+1);},3000); };
+  pbody.querySelectorAll('#tSteps li').forEach(li=>li.addEventListener('click',()=>go(+li.dataset.i))); go(tourI); }
+
+function bul(){ const all=ids(); const order=all.slice().sort(()=>Math.random()-.5).slice(0,Math.min(8,all.length));
+  quiz={order,i:0,ok:0,tries:0}; selected=null; pin.hidden=true; bookView(false); renderQuiz(); }
+function renderQuiz(){ const q=quiz; if(!q) return; const d=M[curKey];
+  if(q.i>=q.order.length){ pbody.innerHTML=`<h2>Sonuç: ${q.ok} / ${q.order.length}</h2><p class="lead">İlk denemede doğru bulduğun yapı sayısı. Bulamadıklarını “Keşfet” sekmesinde tekrar incele.</p><button class="btn pri" id="qAgain">Yeniden oyna</button>`; qAgain.onclick=bul; return; }
+  const id=q.order[q.i];
+  pbody.innerHTML=`<h2>Bul bakalım</h2><p class="lead">Modelde istenen yapının üstüne dokun. Modeli döndürebilir, “Parçaları ayır” ya da “Kitaptaki görünüm” ile açabilirsin.</p>
+   <div class="card"><div class="k">Soru ${q.i+1} / ${q.order.length}</div><h2>${esc(d.s[id][0])}</h2><p class="note">İpucu: ${esc(d.s[id][1])}</p></div>
+   <p class="feedback" id="qFb" aria-live="polite"></p><div class="row"><button class="btn" id="qSkip">Göster ve geç</button><span class="note">Doğru: ${q.ok}</span></div>`;
+  qSkip.onclick=()=>{ focusOn(id); q.i++; q.tries=0; setTimeout(()=>{pin.hidden=true;selected=null;renderQuiz();},1800); }; }
+function quizAnswer(id){ const q=quiz; if(!q||q.i>=q.order.length) return; const want=q.order[q.i];
+  if(id===want){ if(q.tries===0) q.ok++; selected=id; pinName.textContent=M[curKey].s[id][0]; pin.style.setProperty('--c','var(--ok)'); pin.hidden=false; req();
+    qFb.textContent='Doğru!'; qFb.className='feedback ok'; q.i++; q.tries=0; setTimeout(()=>{pin.hidden=true;selected=null;renderQuiz();},1000); }
+  else { q.tries++; qFb.textContent=`Dokunduğun yer: ${M[curKey].s[id][0]}. Tekrar dene.`; qFb.className='feedback bad'; } }
+
+function merak(){ const d=M[curKey];
+  pbody.innerHTML=`<h2>Merak et</h2><p class="lead">Bu soruların cevabı ders kitabında hazır yok. Modeli incele, sonra araştır.</p>
+   ${d.merak.map(([q,t],i)=>`<div class="q"><b>${i+1}. ${esc(q)}</b><details><summary>Nereden başlamalı?</summary><p class="note">${esc(t)}</p></details></div>`).join('')}
+   <h3>Güvenilir kaynaklar</h3>
+   <ul><li><a href="${OPENSTAX[curKey]}" target="_blank" rel="noopener">OpenStax Anatomy and Physiology 2e (İngilizce, ücretsiz)</a></li>
+   <li>MEB 11. sınıf Biyoloji ders kitabı (ilgili tema)</li></ul>`; }
+
+function indir(){ const rows=BASKI[curKey];
+  pbody.innerHTML=`<h2>İndir ve bas</h2><p class="lead">Her dosya baskı yönüne çevrildi: dilimleyicide döndürmeden tablaya yerleştir.</p>
+   <div class="tw"><table><thead><tr><th>Parça</th><th>Ölçü (mm)</th><th>Gram*</th><th>Saat*</th><th>Destek</th></tr></thead><tbody>
+   ${rows.map(r=>`<tr><td><a href="indir/${r[1]}" download>${r[0]}</a></td><td class="n">${r[2]}</td><td class="n">${String(r[3]).replace('.',',')}</td><td class="n">${r[4]}</td><td>${r[5]}</td></tr>`).join('')}
+   </tbody></table></div>
+   <p class="note">* Tahmin: PLA, 1,2 mm dış kabuk, %15 doluluk, 0,2 mm katman. Dilimleyicinin gösterdiği değeri esas al.</p>
+   <div class="warnbox" id="dlWarn" hidden>İndirme dosyaları bu önizlemede yok. Sayfa okul sitesine ya da GitHub Pages'e “indir” klasörüyle birlikte yüklendiğinde bağlantılar çalışır.</div>
+   <h3>Birleştirme</h3><p>${BIRLESTIR[curKey]}</p>
+   <h3>Önerilen ayarlar</h3><ul class="note"><li>0,16 mm katman (yazılı parçalar), 3 duvar, %15 gyroid</li><li>Yavaş ilk katman; yazılar için açık renk filament</li><li>Yazıları ince uçlu permanent kalemle boya; taşan kısmı alkollü pamukla sil</li></ul>
+   <h3>Ölçek hesaplayıcı</h3>
+   <div class="row" style="align-items:flex-end"><div style="flex:1;min-width:140px"><label for="bed" class="note">Yazıcı tablası</label><select id="bed"><option value="180">180 × 180 mm</option><option value="220" selected>220 × 220 mm</option><option value="256">256 × 256 mm</option><option value="300">300 × 300 mm</option></select></div>
+   <div style="flex:1;min-width:140px"><label for="pct" class="note">Ölçek (%)</label><input type="text" id="pct" inputmode="numeric" value="100"></div></div>
+   <p id="calc" class="note" aria-live="polite"></p>
+   <h3>Bu model için QR kod</h3>
+   <div class="qrbox"><div id="qr"></div><div style="flex:1;min-width:180px"><label for="qrUrl" class="note">Sitenin adresi (yayınladıktan sonra düzelt)</label><input type="text" id="qrUrl"><p class="note">QR, telefonda doğrudan bu modeli açar. Basılı modelin tabanına ya da sınıf panosuna yapıştırın.</p></div></div>`;
+  const big=Math.max(...rows.map(r=>{const v=r[2].split('×').map(x=>parseFloat(x.replace(',','.'))).filter(x=>!isNaN(x)); return v.length?Math.max(v[0],v[1]):0;}));
+  const grams=rows.reduce((a,r)=>a+r[3],0);
+  const calcF=()=>{ const bedv=+bed.value; const p=parseFloat(pct.value.replace(',','.')); if(!(p>0)){calc.textContent='Ölçek için 10 ile 200 arasında bir sayı yaz.';return;}
+    const fit=Math.floor(bedv/big*100), s=p/100; calc.innerHTML=`En büyük parça ${Math.round(big*s)} mm olur. Bu tablaya en fazla <b>%${fit}</b> ölçek sığar. Toplam filament yaklaşık <b>${Math.round(grams*s*s*s)} g</b>. Ölçeği dilimleyicide “Scale” ayarından uygula.`+(big*s>bedv?` <span style="color:var(--bad);font-weight:600">Bu ölçek tablaya sığmaz.</span>`:''); };
+  bed.onchange=calcF; pct.oninput=calcF; calcF();
+  const base=(location.protocol.startsWith('http')? location.origin+location.pathname : 'https://okulunuz.example/biyomodul/');
+  qrUrl.value=base+'#'+curKey; const mk=()=>{ qr.innerHTML=''; try{ new QRCode(qr,{text:qrUrl.value,width:148,height:148,correctLevel:QRCode.CorrectLevel.M}); }catch(e){ qr.textContent='QR oluşturulamadı.'; } };
+  qrUrl.oninput=mk; mk();
+  fetch('indir/'+rows[0][1],{method:'HEAD'}).then(r=>{ if(!r.ok) throw 0; }).catch(()=>{ dlWarn.hidden=false; }); }
+
+function ogretmen(){ const d=M[curKey];
+  pbody.innerHTML=`<h2>Öğretmen için 30 dakikalık akış</h2><p class="lead">Basılı model ve bu sayfa birlikte kullanılır. Süreler öneridir.</p>
+   <ol class="steps">${d.ogr.map(([t,x],i)=>`<li><span class="num">${i+1}</span><div><b>${t}</b><br>${esc(x)}</div></li>`).join('')}</ol>
+   <h3>Modelin sınırları</h3><p class="note">${esc(d.kaynak)} Model bir öğretim aracıdır; bazı yapılar sadeleştirildi. Ders kitabındaki terimler esas alındı.</p>
+   <h3>Keşif defteri</h3><p class="note">Öğrencinin hangi yapıları açtığı yalnızca kendi cihazında tutulur; hiçbir bilgi sunucuya gönderilmez.</p>`; }
+
+/* ---------------- olaylar ve yonlendirme */
+const loadingEl=document.getElementById('loading'), explodeEl=document.getElementById('explode'), clipEl=document.getElementById('clip'), textColorEl=document.getElementById('textColor');
+explodeEl.addEventListener('input',applyExplode); clipEl.addEventListener('input',applyClip);
+function setTextColor(v){ const c=v==='oto'?(curKey==='kalp'?'#ffffff':'#111111'):v; textMats.forEach(m=>m.color.set(c).convertSRGBToLinear()); req(); try{localStorage.setItem('bm_tc',v)}catch(e){} }
+try{ const v=localStorage.getItem('bm_tc'); if(v) textColorEl.value=v; }catch(e){}
+textColorEl.addEventListener('change',()=>setTextColor(textColorEl.value));
+function toggleLabels(on){ showLabels=on; bLabels.setAttribute('aria-pressed',on); lblLayer.hidden=!on; req(); }
+bLabels.onclick=()=>toggleLabels(!showLabels);
+bBook.onclick=()=>bookView(false); bOuter.onclick=()=>{selected=null;pin.hidden=true;resetView(false);}; bReset.onclick=()=>{explodeEl.value=0;clipEl.value=1;applyExplode();applyClip();selected=null;pin.hidden=true;bookView(false);};
+function route(){ const h=(location.hash||'#kalp').slice(1).split('/')[0]; const k=M[h]?h:'kalp'; tourI=0; if(k!==curKey) show(k); }
+window.addEventListener('hashchange',()=>route()); route();
+
+</script>
+<script>
+/* ======================================================================  EK OZELLIKLER (v4)
+   1 Hazirla sekmesi (baski ve montaj rehberi)   2 Malzeme ve maliyet hesaplayici   3 Yol canlandirma (kan / isik / uyari)
+   4 Sesli okuma   5 Buyuk yazi   6 Yuksek kontrast   7 Tam ekran (sinif sunumu)   8 Cevrimdisi calisma (PWA)
+   9 Dogru mu yanlis mi?   10 Bul bakalim: sure ve en iyi skor   11 Ingilizce terimler   12 Calisma kagidi (yazdir)
+   13 QR posteri (yazdir)   14 Goruntu indir   15 Yapiya ozel baglanti   16 Saglikla baglantisi kartlari   17 Kesif rozeti */
+
+/* ---------- 11 Ingilizce terimler */
+const EN = {
+ kalp:{sag_kulakcik:"Right atrium",sol_kulakcik:"Left atrium",sag_karincik:"Right ventricle",sol_karincik:"Left ventricle",trikuspit:"Tricuspid valve",mitral:"Mitral (bicuspid) valve",
+  aort_kapagi:"Aortic valve",pulmoner_kapak:"Pulmonary valve",aort:"Aorta",akciger_atardamari:"Pulmonary trunk",ust_ana_toplardamar:"Superior vena cava",alt_ana_toplardamar:"Inferior vena cava",
+  akciger_toplardamari:"Pulmonary veins",koroner:"Coronary vessels",bolme:"Interventricular septum",papiller:"Papillary muscles and chordae tendineae"},
+ goz:{kornea:"Cornea",iris:"Iris",gozbebegi:"Pupil",mercek:"Lens",kirpiksi_cisim:"Ciliary body",sklera:"Sclera",damar_tabaka:"Choroid",ag_tabaka:"Retina",sari_benek:"Macula lutea",
+  kor_nokta:"Optic disc (blind spot)",gorme_siniri:"Optic nerve",camsi_cisim:"Vitreous body",ust_duz_kas:"Superior rectus",dis_duz_kas:"Lateral rectus",ic_duz_kas:"Medial rectus",
+  alt_duz_kas:"Inferior rectus",ag_damarlari:"Retinal vessels"},
+ beyin:{uc_beyin:"Cerebrum",nasirli_cisim:"Corpus callosum",talamus:"Thalamus",hipotalamus:"Hypothalamus",hipofiz:"Pituitary gland",orta_beyin:"Midbrain",pons:"Pons",
+  omurilik_sogani:"Medulla oblongata",omurilik:"Spinal cord",beyincik:"Cerebellum",hayat_agaci:"Arbor vitae",damarlar:"Surface vessels (schematic)"}};
+
+/* ---------- 16 Saglikla baglantisi (tanim duzeyinde; tibbi tavsiye degildir) */
+const SAGLIK = {
+ kalp:[["Kalp kapak hastalıkları","Bir kapak tam kapanmazsa kan geri kaçar (yetmezlik); kapak daralırsa kanın geçişi zorlaşır (darlık).",["trikuspit","mitral","aort_kapagi"]],
+  ["Koroner arter hastalığı","Kalp kasını besleyen koroner damarlar daralır ya da tıkanırsa kalp kası yeterli oksijen alamaz; tam tıkanma kalp krizine yol açabilir.",["koroner"]],
+  ["Doğuştan bölme açıklıkları","Kulakçıklar ya da karıncıklar arasındaki bölmede açıklık kalırsa oksijence zengin ve fakir kan karışabilir.",["bolme"]]],
+ goz:[["Miyopi","Görüntü ağ tabakanın önüne düşer; uzağı net görmek zorlaşır. İnceltilmiş kenarlı (ıraksak) merceklerle düzeltilir.",["ag_tabaka"]],
+  ["Hipermetropi","Görüntü ağ tabakanın arkasına düşer; yakını net görmek zorlaşır. Kalın kenarlı olmayan (yakınsak) merceklerle düzeltilir.",["mercek"]],
+  ["Katarakt","Göz merceğinin saydamlığını yitirmesidir; görme bulanıklaşır. Ameliyatla bulanık mercek yerine yapay mercek takılabilir.",["mercek"]],
+  ["Glokom","Çoğunlukla göz içi basıncının yükselmesiyle ilişkili olarak görme sinirinin zarar görmesidir.",["gorme_siniri","kor_nokta"]]],
+ beyin:[["İnme","Beynin bir bölgesine giden kan akışının damar tıkanması ya da kanama nedeniyle bozulmasıdır; o bölgenin yönettiği görev aksar.",["damarlar","uc_beyin"]],
+  ["Parkinson hastalığı","Orta beyinde dopamin üreten sinir hücrelerinin azalmasıyla ortaya çıkan, titreme ve hareket yavaşlığıyla seyreden bir hastalıktır.",["orta_beyin"]],
+  ["Büyüme hormonu bozuklukları","Hipofizden salgılanan büyüme hormonunun çocuklukta fazlalığı devliğe, eksikliği cüceliğe yol açabilir.",["hipofiz"]]]};
+
+/* ---------- 9 Dogru mu yanlis mi? */
+const DY = {
+ kalp:[["Atardamarlar her zaman oksijence zengin kan taşır.",0,"Yanlış. Akciğer atardamarı oksijence fakir kanı akciğerlere taşır. Atardamar, kalpten çıkan damardır.","akciger_atardamari"],
+  ["Sol karıncığın duvarı sağ karıncığın duvarından kalındır.",1,"Doğru. Sol karıncık kanı bütün vücuda pompalar.","sol_karincik"],
+  ["Kalp kapakları kanın tek yönde akmasını sağlar.",1,"Doğru. Kapaklar kanın geri dönmesini engeller.","mitral"],
+  ["Kalp kası, başlıca odacıklarındaki kanla beslenir.",0,"Yanlış. Kalp kası başlıca koroner damarlarla beslenir.","koroner"],
+  ["Akciğer toplardamarları sol kulakçığa açılır.",1,"Doğru. Akciğerden gelen oksijence zengin kan sol kulakçığa döner.","akciger_toplardamari"],
+  ["Triküspit kapak sol kulakçık ile sol karıncık arasındadır.",0,"Yanlış. Triküspit kapak sağ tarafta; sol tarafta mitral kapak vardır.","trikuspit"]],
+ goz:[["Kör noktada çubuk ve koni hücresi bulunmaz.",1,"Doğru. Görme sinirinin çıktığı yerde reseptör yoktur.","kor_nokta"],
+  ["Gözde ışığı en çok kıran yapı mercektir.",0,"Yanlış. Işığı en çok kıran yapı korneadır; mercek odaklamayı ince ayarlar.","kornea"],
+  ["Göz bebeği karanlıkta küçülür.",0,"Yanlış. Karanlıkta göz bebeği büyür, daha fazla ışık girer.","gozbebegi"],
+  ["Sarı benekte koni hücreleri yoğundur.",1,"Doğru. Net ve renkli görme burada olur.","sari_benek"],
+  ["Ağ tabakaya düşen görüntü ters ve küçüktür.",1,"Doğru. Beyin görüntüyü düz olarak algılar.","ag_tabaka"],
+  ["Sert tabaka gözün en iç tabakasıdır.",0,"Yanlış. Sert tabaka en dıştadır; en iç tabaka ağ tabakadır.","sklera"]],
+ beyin:[["Beyincik denge ve hareketlerin uyumunu sağlar.",1,"Doğru.","beyincik"],
+  ["Solunumun düzenlendiği merkezler omurilik soğanında bulunur.",1,"Doğru. Pons da solunumun düzenlenmesine katkıda bulunur.","omurilik_sogani"],
+  ["Sağ yarım küre vücudun sağ tarafını yönetir.",0,"Yanlış. Sinir yolları çaprazlaştığı için sağ yarım küre büyük ölçüde sol tarafı yönetir.","uc_beyin"],
+  ["Nasırlı cisim iki yarım küreyi birbirine bağlar.",1,"Doğru.","nasirli_cisim"],
+  ["Talamus koku dahil bütün duyuları uç beyne aktarır.",0,"Yanlış. Koku uyarıları talamustan geçmeden iletilir.","talamus"],
+  ["Hipofiz, hipotalamus tarafından denetlenir.",1,"Doğru.","hipofiz"]]};
+
+/* ---------- 1-2 baski verisi: hacim (cm3) ve yuzey (cm2) baski_denetim.py ciktisindan */
+const PARCA = {
+ kalp:[["Arka yarı","kalp/kalp_ARKA_yari.stl","133 × 193 × 88",190.5,1213.8,"Ağaç destek"],["Ön yarı","kalp/kalp_ON_yari.stl","118 × 177 × 47",121.2,752.0,"Ağaç destek"]],
+ goz:[["Alt yarı","goz/goz_ALT_yari.stl","123 × 144 × 78",238.2,594.9,"Ağaç destek"],["Üst yarı","goz/goz_UST_yari.stl","121 × 142 × 50",150.4,376.7,"Ağaç destek"],
+  ["Kornea","goz/kornea.stl","58 × 58 × 13",8.0,60.4,"Gerekebilir"],["İris ve kirpiksi cisim","goz/iris_kirpiksi_cisim.stl","91 × 91 × 18",22.9,213.2,"Gerekebilir"],
+  ["Mercek ön","goz/mercek_on.stl","48 × 48 × 7",7.5,38.4,"Gerekmez"],["Mercek arka","goz/mercek_arka.stl","48 × 48 × 13",13.2,41.5,"Gerekmez"],
+  ["Camsı sıvı alt","goz/camsi_cisim_alt.stl","95 × 72 × 59",258.5,222.6,"Gerekebilir"],["Camsı sıvı üst","goz/camsi_cisim_ust.stl","92 × 71 × 35",122.2,153.5,"Gerekebilir"]],
+ beyin:[["Sağ yarım küre","beyin/beyin_SAG_yarim_kure.stl","179 × 174 × 65",552.0,851.1,"Ağaç destek"],["Sol yarım küre","beyin/beyin_SOL_yarim_kure.stl","178 × 174 × 64",548.4,843.6,"Ağaç destek"],
+  ["Talamus (sağ)","beyin/tapa_talamus_SAG.stl","15 × 24 × 8",1.4,8.8,"Gerekmez"],["Talamus (sol)","beyin/tapa_talamus_SOL.stl","15 × 24 × 8",1.4,8.8,"Gerekmez"],
+  ["Orta beyin (sağ)","beyin/tapa_orta_beyin_SAG.stl","13 × 17 × 8",0.8,6.1,"Gerekmez"],["Orta beyin (sol)","beyin/tapa_orta_beyin_SOL.stl","13 × 17 × 8",0.8,6.1,"Gerekmez"],
+  ["Pimler (4 adet, 1 yedek)","beyin/beyin_pim_4mm_x4.stl","4 × 4 × 11 (her biri)",0.56,7.4,"Gerekmez"]]};
+const KUPON=["Okunabilirlik test kuponu","kupon/okunabilirlik_test_kuponu.stl","78 × 53 × 3",9.84,100.0,"Gerekmez"];
+/* miknatis yuvasi 6,3 x 3,3 mm (1:1); pim: kalp ve gozde parcayla birlikte basilir, beyinde ayri */
+const BOM = {kalp:{mk:12,pim:"2 pim arka yarıyla birlikte basılır (ayrı parça yok)"},goz:{mk:8,pim:"2 pim alt yarıyla birlikte basılır; mercek yarıları yapıştırılır"},
+  beyin:{mk:8,pim:"3 pim ayrı basılır (dosyada 1 yedek)"}};
+function gram(V,A,s){ const v=V*s*s*s, a=A*s*s, sh=Math.min(v,a*0.12); return (sh+(v-sh)*0.15)*1.24; }
+const fmt=(x,d=0)=>x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d});
+function mkOner(s){ const D=6.3*s, H=3.3*s; const opts=[[6,3],[5,3],[5,2],[4,2],[3,2],[3,1]]; const f=opts.find(([d,h])=>d<=D-0.25&&h<=H-0.15);
+  return {D,H,txt:f?`${f[0]} × ${f[1]} mm`:'mıknatıs sığmaz; yalnızca pimle birleştirin'}; }
+
+/* ---------- 1 Indir sekmesi (guncel) */
+indir=function(){ const rows=PARCA[curKey];
+  pbody.innerHTML=`<h2>İndir</h2><p class="lead">Her dosya baskı yönüne çevrildi: dilimleyicide döndürmeden tablaya yerleştir. Baskıdan önce <b>Hazırla</b> sekmesindeki adımları oku.</p>
+   <div class="tw"><table><thead><tr><th>Parça</th><th>Ölçü (mm, 1:1)</th><th>Filament*</th><th>Destek</th></tr></thead><tbody>
+   ${rows.map(r=>`<tr><td><a href="indir/${r[1]}" download>${r[0]}</a></td><td class="n">${r[2]}</td><td class="n">${fmt(gram(r[3],r[4],1),1)} g</td><td>${r[5]}</td></tr>`).join('')}
+   <tr><td><a href="indir/${KUPON[1]}" download>${KUPON[0]}</a></td><td class="n">${KUPON[2]}</td><td class="n">${fmt(gram(KUPON[3],KUPON[4],1),1)} g</td><td>${KUPON[5]}</td></tr>
+   </tbody></table></div>
+   <p class="note">* Tahmin: PLA (1,24 g/cm³), 1,2 mm dış kabuk, %15 iç doluluk. Baskı süresini ve kesin gramajı dilimleyici programın gösterdiği değerden alın.</p>
+   <div class="warnbox" id="dlWarn" hidden>İndirme dosyaları bu önizlemede yok. Sayfa “indir” klasörüyle birlikte yayımlandığında bağlantılar çalışır.</div>
+   <h3>Bu model için QR kod</h3>
+   <div class="qrbox"><div id="qr"></div><div style="flex:1;min-width:180px"><label for="qrUrl" class="note">Sitenin adresi (yayımladıktan sonra düzeltin)</label><input type="text" id="qrUrl"><p class="note">QR, telefonda doğrudan bu modeli açar. Bütün modellerin QR kodları için “QR posteri”ni kullanın.</p><button class="btn" id="bPoster">QR posteri yazdır</button></div></div>`;
+  const base=(location.protocol.startsWith('http')? location.origin+location.pathname : 'https://okulunuz.example/biyomodul/');
+  qrUrl.value=base+'#'+curKey; const mk=()=>{ qr.innerHTML=''; try{ new QRCode(qr,{text:qrUrl.value,width:148,height:148,correctLevel:QRCode.CorrectLevel.M}); }catch(e){ qr.textContent='QR oluşturulamadı.'; } };
+  qrUrl.oninput=mk; mk(); bPoster.onclick=()=>qrPoster(qrUrl.value.split('#')[0]);
+  fetch('indir/'+rows[0][1],{method:'HEAD'}).then(r=>{ if(!r.ok) throw 0; }).catch(()=>{ dlWarn.hidden=false; }); };
+
+/* ---------- 1-2 Hazirla sekmesi */
+
+/* Projede basilan hazir set (baski_seti/olcekle2.py ciktisi; gram: 2 duvar + %10 doluluk, PLA 1,24 g/cm3) */
+const HAZIR={kalp:{olcek:60,parca:"2 parça (ön ve arka yarı)",boy:"en uzun 11,6 cm",g:72,mk:12,pim:"2 pim arka yarıyla birlikte basılır"},
+ goz:{olcek:65,parca:"6 parça (alt yarı, üst yarı, kornea, iris-kirpiksi cisim, mercek ön, mercek arka)",boy:"göz küresi çapı 7,8 cm",g:64,mk:8,pim:"2 pim alt yarıyla birlikte basılır"},
+ beyin:{olcek:55,parca:"2 yarım küre + 3 pim (1 yedek) + isteğe bağlı 4 tapa",boy:"en uzun 9,8 cm",g:70,mk:8,pim:"3 pim (1 yedek) ayrı dosyada basılır"}};
+function setAdresi(){ const h=location.hostname, seg=location.pathname.split('/').filter(Boolean)[0];
+  return /\.github\.io$/.test(h)&&seg ? `https://github.com/${h.split('.')[0]}/${seg}/releases/latest` : null; }
+function hazirKutu(k){ const H=HAZIR[k]; if(!H) return ''; const u=setAdresi();
+  return `<div class="card" style="--c:var(--accent);margin:10px 0 14px"><div class="k">Bu projede basılan hazır set</div>
+  <p><b>Ölçek %${H.olcek}</b> · ${H.parca} · ${H.boy}</p>
+  <p class="note">Tahmini filament ≈ ${H.g} g (2 duvar, %10 doluluk). Mıknatıs: <b>${H.mk} adet 4 × 2 mm</b> neodimyum (yuvalar bu ölçü için yeniden açıldı). ${H.pim}.</p>
+  <p class="note">Dükkân ayarı: PLA, en düşük doluluk, 0,20 mm katman, ağaç destek, dosya yönü değiştirilmeden.</p>
+  ${u?`<a class="btn" href="${u}" target="_blank" rel="noopener">Hazır baskı setini indir (zip)</a>`:'<p class="note">Hazır set zip dosyaları sitenin GitHub sayfasındaki “Releases” bölümündedir.</p>'}</div>`; }
+function hazirla(){ const k=curKey, d=M[k], b=BOM[k];
+  pbody.innerHTML=`<h2>${d.ad} modelini hazırla</h2><p class="lead">Baskıdan montaja kadar adım adım rehber. Değerler bu sayfadaki dosyalardan hesaplandı; yazıcınıza göre dilimleyicide kontrol edin.</p>${hazirKutu(k)}<h3 style="margin-top:4px">Kendi ölçeğinizi hesaplayın (1:1 dosyalar)</h3>
+  <h3>1. Malzeme ve maliyet</h3>
+  <div class="row" style="align-items:flex-end">
+   <div style="flex:1;min-width:110px"><label for="hS" class="note">Ölçek (%)</label><input type="text" id="hS" inputmode="numeric" value="100"></div>
+   <div style="flex:1;min-width:110px"><label for="hF" class="note">Filament (TL/kg)</label><input type="text" id="hF" inputmode="numeric" value="754"></div>
+   <div style="flex:1;min-width:110px"><label for="hM" class="note">Mıknatıs (TL/adet)</label><input type="text" id="hM" inputmode="decimal" placeholder="satıcıya göre"></div>
+   <div style="flex:1;min-width:120px"><label for="hB" class="note">Tabla</label><select id="hB"><option value="180">180 × 180</option><option value="220" selected>220 × 220</option><option value="256">256 × 256</option><option value="300">300 × 300</option></select></div></div>
+  <div id="hOut" aria-live="polite" style="margin-top:10px"></div>
+  <p class="note">Varsayılan filament fiyatı, 20 Kasım 2026'da bir fiyat karşılaştırma sitesinde 1 kg PLA için 14 satıcının medyan fiyatıdır; güncel fiyatı yazın.</p>
+  <h3>2. Önce test kuponunu basın</h3>
+  <p>Okunabilirlik test kuponu (≈ ${fmt(gram(KUPON[3],KUPON[4],1),0)} g) yazıcınızın hangi yazı boyutunu çıkarabildiğini gösterir. Kuponda 1,2–3,0 mm harf yüksekliğinde kabartma ve oyma yazılar var. Modelleri küçültecekseniz harf yüksekliği bu ölçekte kaç mm'ye iner, aşağıdaki tablodan bakın ve kuponla karşılaştırın.</p>
+  <h3>3. Dilimleyici ayarları (başlangıç önerisi)</h3>
+  <ul class="note"><li>Malzeme: PLA. Sıcaklık: filament makarasının etiketindeki aralık.</li><li>Katman: yazılı parçalarda 0,12–0,16 mm, diğerlerinde 0,2 mm.</li><li>Duvar: 3 çizgi (≈ 1,2 mm). İç doluluk: %15.</li>
+   <li>Destek: büyük yarılarda yalnızca tablaya değen ağaç destek. Kesit yüzleri (yazılar) yukarı bakar; o yüzeye destek gelmez.</li><li>Uzun ve dar parçalarda tabla yapışması için kenar (brim) ekleyin.</li><li>Kornea ve mercek için şeffaf PLA ya da PETG kullanılabilir.</li></ul>
+  <h3>4. Birleştirme parçaları</h3>
+  <ul><li><b>${b.mk} adet neodimyum mıknatıs</b> (1:1 ölçekte 6 × 3 mm; yuva 6,3 × 3,3 mm).</li><li>${b.pim}.</li><li>Japon yapıştırıcısı (siyanoakrilat), 240–400 numara zımpara, isteğe bağlı ince uçlu kalem.</li></ul>
+  <div class="warnbox">Mıknatıslar küçük çocukların erişemeyeceği yerde saklanmalıdır; birden fazla mıknatısın yutulması ciddi yaralanmaya yol açabilir.</div>
+  <h3>5. Montaj</h3>
+  <ol class="steps">
+   <li><span class="num">1</span><div>Destekleri temizleyin. Pim karşı deliğe girmiyorsa pimi zımparayla hafifçe inceltin; deliği büyütmeyin.</div></li>
+   <li><span class="num">2</span><div>Parçaları mıknatıssız birleştirip hizayı kontrol edin.</div></li>
+   <li><span class="num">3</span><div>Bir yarıdaki yuvalara yapıştırıcı damlatıp mıknatısları yerleştirin.</div></li>
+   <li><span class="num">4</span><div><b>Kutup hatasını önlemek için:</b> karşı mıknatısları yapıştırıcı sürmeden, takılı mıknatısların üstüne kendiliğinden yapışacak şekilde koyun. Karşı yarının yuvalarına yapıştırıcı damlatın ve iki yarıyı kapatın. Böylece her çift kendiliğinden doğru yönde yerleşir.</div></li>
+   <li><span class="num">5</span><div>Yapıştırıcı kuruyunca yarıları ayırıp birleşmeyi deneyin.</div></li>
+   <li><span class="num">6</span><div>İsteğe bağlı: kabartma yazıların üstünü ince uçlu kalemle boyayın; taşanı alkollü pamukla silin.</div></li></ol>
+  <h3>6. Kontrol</h3>
+  <ul class="note"><li>Parçaları tartın ve tablodaki tahminle karşılaştırın.</li><li>Kumpasla en büyük çapı ölçün; beklenen ölçü tablodaki değer × ölçek.</li><li>Her yazının okunup okunmadığını not edin.</li></ul>
+  <h3>Sorun giderme</h3>
+  <div class="tw"><table><thead><tr><th>Sorun</th><th>Öneri</th></tr></thead><tbody>
+   <tr><td>Yazılar silik</td><td>Katmanı inceltin (0,12 mm), yazılı yüzeyi yavaş basın, ölçeği büyütün.</td></tr>
+   <tr><td>Mıknatıs yuvaya girmiyor</td><td>Ölçek küçüldüyse aşağıdaki tablodan daha küçük mıknatıs seçin.</td></tr>
+   <tr><td>Parça tablaya sığmıyor</td><td>Tabla boyutunu seçin; hesaplayıcı en büyük ölçeği gösterir.</td></tr>
+   <tr><td>Destek izi kaldı</td><td>Ağaç destek kullanın; izleri zımparalayın.</td></tr></tbody></table></div>`;
+  const run=()=>{ const s=(parseFloat(hS.value.replace(',','.'))||0)/100, fp=parseFloat(hF.value.replace(',','.'))||0, mp=parseFloat((hM.value||'').replace(',','.')), bed=+hB.value;
+    if(!(s>0.2&&s<=2)){ hOut.innerHTML='<p class="note">Ölçek için 20 ile 200 arasında bir sayı yazın.</p>'; return; }
+    const rows=PARCA[k]; const g=rows.reduce((a,r)=>a+gram(r[3],r[4],s),0); const big=Math.max(...rows.map(r=>Math.max(...r[2].split('×').slice(0,2).map(x=>parseFloat(x))||[0])))*s;
+    const fit=Math.floor(bed/(big/s)*100); const mk=mkOner(s); const minCap={kalp:2.2,goz:1.8,beyin:2.4}[k]*s; const minLine={kalp:0.71,goz:0.61,beyin:0.80}[k]*s;
+    const mTL=(mp>0)?mp*b.mk:null;
+    hOut.innerHTML=`<div class="tw"><table><tbody>
+     <tr><td>Toplam filament</td><td class="n"><b>${fmt(g,0)} g</b></td></tr>
+     <tr><td>Filament maliyeti</td><td class="n">${fmt(g/1000*fp,0)} TL</td></tr>
+     <tr><td>Mıknatıs</td><td class="n">${b.mk} adet · ${mk.txt}${mTL!=null?` · ${fmt(mTL,0)} TL`:''}</td></tr>
+     <tr><td>En büyük parça</td><td class="n">${fmt(big,0)} mm ${big>bed?'<b style="color:var(--bad)">· tablaya sığmaz</b>':''}</td></tr>
+     <tr><td>Bu tablada en büyük ölçek</td><td class="n">%${fit}</td></tr>
+     <tr><td>En küçük harf yüksekliği</td><td class="n">${fmt(minCap,1)} mm</td></tr>
+     <tr><td>En ince yazı çizgisi</td><td class="n">${fmt(minLine,2)} mm ${minLine<0.4?'<b style="color:var(--bad)">· 0,4 mm nozülün altında</b>':''}</td></tr>
+    </tbody></table></div>`; };
+  [hS,hF,hM].forEach(e=>e.oninput=run); hB.onchange=run; run(); }
+
+/* ---------- 3 Yol canlandirma */
+let flow=null;
+function flowStop(){ if(!flow) return; scene.remove(flow.grp); flow.grp.traverse(o=>{o.geometry&&o.geometry.dispose(); o.material&&o.material.dispose();}); flow=null; req(); }
+function flowStart(){ flowStop(); const T=M[curKey].tur.adimlar;
+  const P0=T.map(([id])=>pts[id]).filter(Boolean).map(o=>o.p.clone().add(offsetOf(o.g,+explodeEl.value)));
+  const eps=fitDist()*0.01, P=[]; P0.forEach(q=>{ if(!P.length||P[P.length-1].distanceTo(q)>eps) P.push(q); }); if(P.length<2) return;
+  const curve=new THREE.CatmullRomCurve3(P,false,'catmullrom',0.5); const grp=new THREE.Group(); grp.renderOrder=999;
+  const lm=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.55,depthTest:false});
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(240)),lm); line.renderOrder=999; grp.add(line);
+  const r=fitDist()*0.008, N=16, dots=[];
+  for(let i=0;i<N;i++){ const m=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),new THREE.MeshBasicMaterial({color:0xffffff,depthTest:false,transparent:true})); m.renderOrder=1000; grp.add(m); dots.push(m); }
+  const split={kalp:T.findIndex(a=>a[0]==='akciger_toplardamari')/(T.length-1)}[curKey];
+  scene.add(grp); flow={grp,curve,dots,t0:performance.now(),split};
+  const tick=now=>{ if(!flow||flow.grp!==grp) return; const u0=Math.max(0,(now-flow.t0)/9000)%1;
+    dots.forEach((m,i)=>{ const u=Math.min(0.9999,(u0+i/N)%1); m.position.copy(curve.getPointAt(u));
+      const c=curKey==='kalp'?(u<split?0x3b6fe0:0xe0343d):curKey==='goz'?0xffd23f:0xc77dff; m.material.color.setHex(c); });
+    req(); requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
+
+/* ---------- 4 Sesli okuma */
+const TTS = 'speechSynthesis' in window;
+function trVoice(){ return (speechSynthesis.getVoices()||[]).find(v=>/^tr/i.test(v.lang)); }
+function say(t){ if(!TTS) return false; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='tr-TR'; const v=trVoice(); if(v) u.voice=v; u.rate=0.95; speechSynthesis.speak(u); return true; }
+
+/* Kesfet kartina ek: Ingilizce ad, sesli okuma, baglanti, saglik */
+function ekInfo(id){ const en=(EN[curKey]||{})[id]; const sag=(SAGLIK[curKey]||[]).filter(x=>x[2].includes(id));
+  return `${en?`<p class="note" lang="en"><b>İngilizce:</b> ${esc(en)}</p>`:''}
+   <div class="row" style="margin-top:6px">${TTS?`<button class="btn" data-say="${id}">Sesli oku</button>`:''}<button class="btn" data-link="${id}">Bağlantıyı kopyala</button></div>
+   ${sag.map(s=>`<p class="note" style="margin-top:8px"><b>Sağlıkla bağlantısı – ${esc(s[0])}:</b> ${esc(s[1])}</p>`).join('')}`; }
+document.addEventListener('click',e=>{ const t=e.target.closest('[data-say],[data-link]'); if(!t) return;
+  const id=t.dataset.say||t.dataset.link, s=M[curKey].s[id];
+  if(t.dataset.say){ if(!say(`${s[0]}. ${s[1]} ${s[2]||''}`)) tip('Bu tarayıcı sesli okumayı desteklemiyor.'); else if(!trVoice()) tip('Cihazda Türkçe ses bulunamadı; varsayılan ses kullanılıyor.'); }
+  else { const u=location.origin+location.pathname+'#'+curKey+'/'+id; (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>tip('Bağlantı kopyalandı: bu yapı doğrudan açılır.')).catch(()=>prompt('Bağlantı:',u)); } });
+
+/* ---------- Yolculuk sekmesine ekler: canlandirma ve sesli anlatim */
+const _tur=tur;
+tur=function(){ _tur(); const row=pbody.querySelector('.row'); if(!row) return;
+  const b=document.createElement('button'); b.className='btn'; b.id='tFlow'; b.textContent=flow?'Canlandırmayı durdur':({kalp:'Kanın akışını canlandır',goz:'Işığın yolunu canlandır',beyin:'Yolu canlandır'})[curKey];
+  b.onclick=()=>{ if(flow){flowStop(); b.textContent=({kalp:'Kanın akışını canlandır',goz:'Işığın yolunu canlandır',beyin:'Yolu canlandır'})[curKey];} else { bookView(); setTimeout(flowStart,700); b.textContent='Canlandırmayı durdur'; } };
+  row.appendChild(b);
+  if(TTS){ const s=document.createElement('label'); s.className='note'; s.style.cssText='display:flex;gap:6px;align-items:center'; s.innerHTML='<input type="checkbox" id="tSes"> Sesli anlatım'; row.appendChild(s);
+    tSes.checked=!!window._tSes; tSes.onchange=()=>{ window._tSes=tSes.checked; if(!tSes.checked) speechSynthesis.cancel(); }; }
+  pbody.insertAdjacentHTML('beforeend','<p class="note">Canlandırma şematiktir: noktalar yapıların konumlarını sırayla birleştirir, gerçek akış hızını ve damar içindeki yolu göstermez.</p>'); };
+const _focusOn=focusOn;
+focusOn=function(id){ _focusOn(id); if(curTab==='tur'&&window._tSes){ const T=M[curKey].tur.adimlar.find(a=>a[0]===id); if(T) say(`${M[curKey].s[id][0]}. ${T[1]}`); } };
+
+/* ---------- 9-10 Bul bakalim: iki oyun, sure, en iyi skor */
+const _bul=bul;
+function bestGet(){ try{return JSON.parse(localStorage.getItem('bm_best')||'{}')}catch(e){return {}} }
+function bestSet(k,v){ const b=bestGet(); b[k]=v; try{localStorage.setItem('bm_best',JSON.stringify(b))}catch(e){} }
+bul=function(){ flowStop(); const b=bestGet(); const yb=b[curKey+'_yapi'], db=b[curKey+'_dy'];
+  pbody.innerHTML=`<h2>Bul bakalım</h2><p class="lead">İki oyun var. Skorların yalnızca bu cihazda tutulur.</p>
+   <div class="q"><b>Yapıyı bul</b><p class="note">Adı verilen 8 yapıyı modelde bul. ${yb?`En iyi: ${yb.ok}/8 doğru, ${yb.s} sn`:''}</p><button class="btn pri" id="g1">Başla</button></div>
+   <div class="q"><b>Doğru mu, yanlış mı?</b><p class="note">6 ifade; her yanıttan sonra yapı modelde gösterilir. ${db!=null?`En iyi: ${db}/6`:''}</p><button class="btn pri" id="g2">Başla</button></div>`;
+  g1.onclick=()=>{ window._qT0=performance.now(); _bul(); }; g2.onclick=dyStart; };
+const _renderQuiz=renderQuiz;
+renderQuiz=function(){ _renderQuiz(); const q=quiz; if(q&&q.i>=q.order.length&&window._qT0){ const sec=Math.round((performance.now()-window._qT0)/1000); window._qT0=null;
+  const b=bestGet()[curKey+'_yapi']; const better=!b||q.ok>b.ok||(q.ok===b.ok&&sec<b.s); if(better) bestSet(curKey+'_yapi',{ok:q.ok,s:sec});
+  pbody.insertAdjacentHTML('beforeend',`<p class="note">Süre: ${sec} sn. ${better?'Yeni en iyi skor!':''}</p>`); rozet(); } };
+function dyStart(){ const L=DY[curKey].slice().sort(()=>Math.random()-.5); let i=0, ok=0;
+  const show=()=>{ if(i>=L.length){ const b=bestGet()[curKey+'_dy']; if(b==null||ok>b) bestSet(curKey+'_dy',ok);
+      pbody.innerHTML=`<h2>Sonuç: ${ok} / ${L.length}</h2><p class="lead">Yanlış yaptığın ifadelerin yapılarını “Keşfet” sekmesinde incele.</p><button class="btn pri" id="dyA">Yeniden oyna</button> <button class="btn" id="dyB">Oyunlara dön</button>`; dyA.onclick=dyStart; dyB.onclick=bul; return; }
+    const [t,d,ex,id]=L[i];
+    pbody.innerHTML=`<h2>Doğru mu, yanlış mı?</h2><div class="card"><div class="k">İfade ${i+1} / ${L.length}</div><h2 style="font-size:17px">${esc(t)}</h2></div>
+     <div class="row" style="margin-top:10px"><button class="btn pri" data-a="1">Doğru</button><button class="btn pri" data-a="0">Yanlış</button></div><p class="feedback" id="dyF" aria-live="polite"></p>`;
+    pbody.querySelectorAll('[data-a]').forEach(bt=>bt.onclick=()=>{ const r=(+bt.dataset.a===d); if(r) ok++; dyF.textContent=ex; dyF.className='feedback '+(r?'ok':'bad');
+      pbody.querySelectorAll('[data-a]').forEach(x=>x.disabled=true); if(pts[id]) focusOn(id);
+      const n=document.createElement('button'); n.className='btn'; n.textContent='Sonraki'; n.onclick=()=>{i++;show();}; pbody.appendChild(n); }); };
+  show(); }
+
+/* ---------- 16 Merak et sekmesine saglik kartlari */
+const _merak=merak;
+merak=function(){ _merak(); const S=SAGLIK[curKey]; if(!S) return;
+  pbody.insertAdjacentHTML('beforeend',`<h3>Sağlıkla bağlantısı</h3>${S.map(([a,t,ids])=>`<div class="q"><b>${esc(a)}</b><p class="note">${esc(t)}</p><div class="row">${ids.filter(x=>M[curKey].s[x]).map(x=>`<button class="btn" data-go="${x}">${esc(M[curKey].s[x][0])}</button>`).join('')}</div></div>`).join('')}
+   <p class="note">Bu kartlar bilgi amaçlıdır, tıbbi tavsiye değildir. Ayrıntı için: OpenStax Anatomy and Physiology 2e ve MedlinePlus (ABD Ulusal Tıp Kütüphanesi).</p>`);
+  pbody.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ setTab('kesfet'); info(b.dataset.go); }); };
+
+/* ---------- 17 Kesif rozeti */
+function rozet(){ const s=(seenGet()[curKey])||{}; const n=Object.keys(s).filter(k=>pts[k]).length, N=Object.keys(pts).length; if(N&&n===N&&!window['_rz'+curKey]){ window['_rz'+curKey]=1; tip(`Tebrikler! ${M[curKey].ad} modelindeki ${N} yapının hepsini keşfettin.`); } }
+const _seenAdd=seenAdd; seenAdd=function(id){ _seenAdd(id); rozet(); };
+
+/* ---------- 12-14 Goruntu, calisma kagidi, QR posteri */
+function snap(withNums){ flowStop(); const tx=[]; if(withNums) Object.values(groups).flat().forEach(o=>{ if(o.material.userData.text&&o.visible){ o.visible=false; tx.push(o);} }); renderer.render(scene,camera); tx.forEach(o=>o.visible=true); req(); const W=canvas.width,H=canvas.height; const c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
+  g.fillStyle='#ffffff'; g.fillRect(0,0,W,H); g.drawImage(canvas,0,0); const list=[];
+  if(withNums){ const r=stage.getBoundingClientRect(), sx=W/r.width; let n=0;
+    const meshes=Object.values(groups).flat().filter(o=>o.visible&&!o.material.userData.text), tol=fitDist()*0.12;
+    for(const id of Object.keys(pts)){ const q=project(id); if(!q.vis) continue;
+      const o=pts[id], w=o.p.clone().add(offsetOf(o.g,+explodeEl.value)), dv=w.clone().sub(camera.position), dist=dv.length(); raycaster.set(camera.position,dv.normalize());
+      const h=raycaster.intersectObjects(meshes,false).find(x=>clipEl.value>=0.999||clipPlane.distanceToPoint(x.point)>=0); if(h&&h.distance<dist-tol) continue; n++; list.push(id); const x=q.x*sx,y=q.y*sx, R=11*sx;
+      g.beginPath(); g.arc(x,y,R,0,7); g.fillStyle='#111'; g.fill(); g.lineWidth=2*sx; g.strokeStyle='#fff'; g.stroke();
+      g.fillStyle='#fff'; g.font=`bold ${12*sx}px sans-serif`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(n),x,y+0.5); } }
+  return {url:c.toDataURL('image/png'),list}; }
+function openPrint(title,body){ const w=window.open('','_blank'); if(!w){ tip('Açılır pencere engellendi; tarayıcı izin versin.'); return; }
+  w.document.write(`<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>${title}</title><style>body{font:14px/1.5 "Segoe UI",Arial,sans-serif;color:#111;margin:24px;max-width:780px}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:18px 0 6px}img{max-width:100%;border:1px solid #ccc;border-radius:6px}
+   .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}.ln{border-bottom:1px solid #999;height:22px}.qr{display:inline-block;margin:10px 24px 10px 0;text-align:center}.pb{page-break-before:always}.small{color:#555;font-size:12px}button{margin:10px 0;padding:8px 14px}
+   @media print{button{display:none}}</style></head><body>${body}<button onclick="print()">Yazdır</button></body></html>`); w.document.close(); return w; }
+function calismaKagidi(){ const d=M[curKey]; const {url,list}=snap(true); if(!list.length){ tip('Görünürde numaralanacak yapı yok; modeli döndürün.'); return; }
+  const fn=list.slice().sort(()=>Math.random()-.5).slice(0,Math.min(5,list.length)); const ad=x=>esc(d.s[x][0]);
+  const link=(location.protocol.startsWith('http')?location.origin+location.pathname:'')+'#'+curKey;
+  const w=openPrint(`${d.ad} – çalışma kâğıdı`,`<h1>BİYOMODÜL · ${d.ad} çalışma kâğıdı</h1><p class="small">Ad Soyad: ……………………… Sınıf: ……… Tarih: ………</p>
+   <img src="${url}" alt="${d.ad} modeli, numaralı"><h2>1. Numaralı yapıların adlarını yazın</h2><div class="grid">${list.map((x,i)=>`<div>${i+1}. <span class="ln" style="display:inline-block;width:80%"></span></div>`).join('')}</div>
+   <h2>2. Görevi yapıyla eşleştirin (numarasını yazın)</h2>${fn.map(x=>`<p>( …… ) ${esc(d.s[x][1])}</p>`).join('')}
+   <h2>3. Merak et</h2>${d.merak.slice(0,2).map(q=>`<p>${esc(q[0])}</p><div class="ln"></div><div class="ln"></div>`).join('')}
+   <p class="small">3B modeli incelemek için: ${esc(link)}</p>
+   <div class="pb"></div><h1>Cevap anahtarı (öğretmen için)</h1><ol>${list.map(x=>`<li>${ad(x)} <span class="small">(${esc((EN[curKey]||{})[x]||'')})</span></li>`).join('')}</ol>
+   <h2>Eşleştirme</h2>${fn.map(x=>`<p>${list.indexOf(x)+1} – ${ad(x)}</p>`).join('')}`); }
+function qrData(text){ const d=document.createElement('div'); try{ new QRCode(d,{text,width:360,height:360,correctLevel:QRCode.CorrectLevel.M}); }catch(e){ return ''; } const c=d.querySelector('canvas'); return c?c.toDataURL('image/png'):((d.querySelector('img')||{}).src||''); }
+function qrPoster(base){ base=base||(location.protocol.startsWith('http')?location.origin+location.pathname:'https://okulunuz.example/biyomodul/');
+  openPrint('BİYOMODÜL QR posteri',`<h1>BİYOMODÜL</h1><p class="small">Oku, dokun, sök, keşfet. Kodu telefonunun kamerasıyla okut.</p>${['kalp','goz','beyin'].map(k=>`<div class="qr"><img src="${qrData(base+'#'+k)}" width="180" height="180" alt="${M[k].ad} QR"><br><b>${M[k].ad}</b></div>`).join('')}<p class="small">${esc(base)}</p>`); }
+function goruntuIndir(){ const {url}=snap(false); const a=document.createElement('a'); a.href=url; a.download=`biyomodul_${curKey}.png`; document.body.appendChild(a); a.click(); a.remove(); }
+
+/* ---------- Ogretmen sekmesine araclar */
+const _ogretmen=ogretmen;
+ogretmen=function(){ _ogretmen(); pbody.insertAdjacentHTML('afterbegin',`<div class="q"><b>Sınıf araçları</b><p class="note">Çalışma kâğıdı, modelin ekrandaki görünümünden numaralı bir şekil oluşturur; cevap anahtarı ikinci sayfadadır. Önce modeli istediğiniz açıya çevirin; yalnızca bu açıdan görünen yapılar numaralanır ve model üzerindeki yazılar şekilde gizlenir. İç yapılar için önce “Kitaptaki görünüm”e geçin.</p>
+  <div class="row"><button class="btn pri" id="oCk">Çalışma kâğıdı oluştur</button><button class="btn" id="oQr">QR posteri</button><button class="btn" id="oImg">Görüntüyü indir</button><button class="btn" id="oFs">Sunum modu (tam ekran)</button></div></div>`);
+  oCk.onclick=calismaKagidi; oQr.onclick=()=>qrPoster(); oImg.onclick=goruntuIndir; oFs.onclick=tamEkran; };
+
+/* ---------- 5-7 Gorunum: buyuk yazi, yuksek kontrast, tam ekran */
+function tamEkran(){ const el=document.documentElement; if(!document.fullscreenElement){ (el.requestFullscreen||el.webkitRequestFullscreen||(()=>{})).call(el); } else { document.exitFullscreen&&document.exitFullscreen(); } }
+(function(){ const nav=document.querySelector('nav.models'); const box=document.createElement('div'); box.className='acc'; box.setAttribute('role','group'); box.setAttribute('aria-label','Görünüm');
+  box.innerHTML=`<button class="btn" id="aBig" aria-pressed="false" title="Büyük yazı">A+</button><button class="btn" id="aHc" aria-pressed="false" title="Yüksek kontrast">Kontrast</button><button class="btn" id="aFs" title="Tam ekran">Tam ekran</button>`;
+  nav.after(box);
+  const set=(cls,btn,key,on)=>{ document.documentElement.classList.toggle(cls,on); btn.setAttribute('aria-pressed',on); try{localStorage.setItem(key,on?'1':'')}catch(e){} setTimeout(resize,50); };
+  let big=false,hc=false; try{ big=!!localStorage.getItem('bm_big'); hc=!!localStorage.getItem('bm_hc'); }catch(e){}
+  set('big',aBig,'bm_big',big); set('hc',aHc,'bm_hc',hc);
+  aBig.onclick=()=>{big=!big; set('big',aBig,'bm_big',big);}; aHc.onclick=()=>{hc=!hc; set('hc',aHc,'bm_hc',hc);}; aFs.onclick=tamEkran; })();
+
+/* ---------- 15 Yapiya ozel baglanti (#kalp/aort) */
+const _initSub=(location.hash.split('/')[1]||'');
+if(_initSub){ const iv=setInterval(()=>{ if(loadingEl.hidden&&pts[_initSub]){ clearInterval(iv); setTab('kesfet'); info(_initSub);} },200); }
+route=async function(){ const [h,sub]=(location.hash||'#kalp').slice(1).split('/'); const k=M[h]?h:'kalp'; tourI=0; flowStop();
+  if(k!==curKey) await show(k); if(sub&&M[k].s[sub]){ setTab('kesfet'); info(sub); } };
+
+/* ---------- 8 Cevrimdisi calisma */
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+</script>
+
+</body>
+</html>
